@@ -43,7 +43,7 @@ In der Integration stellst du einfach die gewünschte Temperatur ein — der Off
 ## Installation (HACS)
 
 1. HACS → Drei-Punkte-Menü → **Custom Repositories**
-2. URL: `https://github.com/<dein-user>/ha-proxon-modbus` / Kategorie: **Integration**
+2. URL: `https://github.com/Camouflagge/proxon` / Kategorie: **Integration**
 3. Installieren → HA neustarten → Integration hinzufügen
 
 ## Credits
