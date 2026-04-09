@@ -47,6 +47,8 @@ class ProxonNumber(CoordinatorEntity, NumberEntity):
     def native_value(self):
         return self.coordinator.data.get(self._data_key) if self.coordinator.data else None
     async def async_set_native_value(self, value):
+        if self._attr_native_step == 1 and value != int(value):
+            raise ValueError(f"Nur ganze Zahlen erlaubt, kein Dezimalwert: {value}")
         rv = int(value / self._scale) if self._scale != 1 else int(value)
         if await self._hub.async_write_register(self._reg, rv, self._slave or self._hub.slave):
             self.coordinator.data[self._data_key] = value
