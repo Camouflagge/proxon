@@ -29,69 +29,23 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-        errors = {}
-
+        """Handle the initial step.
+        
+        No connection test here — the actual connection is tested
+        during async_setup_entry in __init__.py. If it fails there,
+        HA will show the integration as "setup_retry" with the error.
+        This is the standard pattern for most HA integrations.
+        """
         if user_input is not None:
-            # Check if already configured
             await self.async_set_unique_id(f"proxon_{user_input[CONF_HOST]}")
             self._abort_if_unique_id_configured()
 
-            # Test connection
-            can_connect = await self._test_connection(
-                user_input[CONF_HOST],
-                user_input[CONF_PORT],
-                user_input[CONF_SLAVE],
+            return self.async_create_entry(
+                title=f"Proxon FWT ({user_input[CONF_HOST]})",
+                data=user_input,
             )
-
-            if can_connect:
-                return self.async_create_entry(
-                    title=f"Proxon FWT ({user_input[CONF_HOST]})",
-                    data=user_input,
-                )
-            else:
-                errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
-            errors=errors,
         )
-
-    async def _test_connection(self, host: str, port: int, slave: int) -> bool:
-        """Test the Modbus TCP connection."""
-        try:
-            from pymodbus.client import AsyncModbusTcpClient
-
-            client = AsyncModbusTcpClient(host=host, port=port, timeout=5)
-            connected = await client.connect()
-
-            if not connected:
-                _LOGGER.error(
-                    "Proxon: Could not connect to %s:%s", host, port
-                )
-                return False
-
-            try:
-                # Try to read Betriebsart register (16) as connection test
-                result = await client.read_holding_registers(
-                    address=16, count=1, slave=slave
-                )
-                if result.isError():
-                    _LOGGER.error(
-                        "Proxon: Connected but register read failed: %s", result
-                    )
-                    return False
-
-                _LOGGER.info(
-                    "Proxon: Connection test OK. Betriebsart = %s",
-                    result.registers[0],
-                )
-                return True
-
-            finally:
-                client.close()
-
-        except Exception as err:
-            _LOGGER.error("Proxon: Connection test failed: %s", err)
-            return False
