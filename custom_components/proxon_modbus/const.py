@@ -146,7 +146,6 @@ SENSOR_DEFINITIONS = [
     {"register": REG_LUFTFEUCHTE_HOLDING, "name": "Luftfeuchte (Holding)", "uid": "feuchte_h", "unit": "%", "dc": "humidity", "sc": "measurement", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:water-percent"},
     {"register": REG_FILTER_NUTZZEIT, "name": "Filter Nutzzeit", "uid": "filter_nutz", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:air-filter"},
     {"register": REG_BETRIEBSSTUNDEN_FWT, "name": "Betriebsstunden", "uid": "betriebsstd", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:clock-outline"},
-    {"register": REG_ZUGRIFF, "name": "Modbus Zugriffsmodus", "uid": "zugriff", "unit": None, "dc": None, "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:lock-open-variant"},
     {"register": REG_SOLL_TEMP_WOHNZIMMER, "name": "Soll-Temperatur Wohnzimmer", "uid": "soll_wz", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer-check"},
 ]
 

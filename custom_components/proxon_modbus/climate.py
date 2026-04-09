@@ -4,9 +4,9 @@ Proxon Temperatursteuerung:
 - Wohnzimmer (ZBP): Hat eine direkte Soll-Temperatur (Register 70/40071)
   → Bereich 10-30°C, direkt schreibbar (scale 0.01)
 - Nebenpanels (NB): Haben einen Offset von -3 bis +3 (Register 213-218)
-  → Soll = Soll_Wohnzimmer + Offset
-  → Bereich 17-23°C
-  → Beim Setzen: offset = gewünschte_temp - soll_wohnzimmer
+  → Soll = 20 + Offset (feste Basis 20°C)
+  → -3=17°C, -2=18°C, -1=19°C, 0=20°C, +1=21°C, +2=22°C, +3=23°C
+  → Beim Setzen: offset = gewünschte_temp - 20
 """
 from __future__ import annotations
 import logging
@@ -45,13 +45,12 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
         self._attr_unique_id = f"proxon_climate_{room['key']}"
         self._attr_icon = "mdi:thermostat"
 
-        # Wohnzimmer: direkte Soll-Temp (15-25)
-        # Nebenpanels: Offset-basiert (Basis ± 3)
+        # Wohnzimmer: direkte Soll-Temp (10-30)
+        # Nebenpanels: feste Basis 20°C ± 3 → 17-23°C
         if room["soll_reg"] is not None:
             self._attr_min_temp = room["soll_min"]
             self._attr_max_temp = room["soll_max"]
         else:
-            # Offset -3 bis +3 relativ zu Wohnzimmer Soll
             self._attr_min_temp = 17
             self._attr_max_temp = 23
 
@@ -75,11 +74,10 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
             # Wohnzimmer: direkte Soll-Temperatur
             return self.coordinator.data.get("soll_wz")
         else:
-            # Nebenpanel: Soll = Basis_Wohnzimmer + Offset
-            basis = self.coordinator.data.get("soll_wz")
+            # Nebenpanel: Soll = 20 + Offset (feste Basis)
             offset = self.coordinator.data.get(f"offset_{r['key']}", 0)
-            if basis is not None and offset is not None:
-                return round(basis + offset, 1)
+            if offset is not None:
+                return 20 + offset
         return None
 
     @property
@@ -112,17 +110,13 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
                 _LOGGER.info("Set %s Soll to %.1f°C (raw: %d)", r["name"], temp, reg_val)
                 await self.coordinator.async_request_refresh()
         else:
-            # Nebenpanel: Offset berechnen und schreiben
-            basis = self.coordinator.data.get("soll_wz")
-            if basis is None:
-                _LOGGER.error("Cannot set temp: Basis (Soll Wohnzimmer) not available")
-                return
-            new_offset = int(temp - basis)
+            # Nebenpanel: Offset = Temperatur - 20 (feste Basis)
+            new_offset = int(temp - 20)
             # Clamp to -3..+3
             new_offset = max(-3, min(3, new_offset))
             ok = await self._hub.async_write_register(r["offset_reg"], new_offset)
             if ok:
-                _LOGGER.info("Set %s offset to %d (target: %.1f°C, basis: %.1f°C)", r["name"], new_offset, temp, basis)
+                _LOGGER.info("Set %s offset to %d (target: %.1f°C)", r["name"], new_offset, temp)
                 await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode):

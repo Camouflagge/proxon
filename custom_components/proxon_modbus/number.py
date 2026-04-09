@@ -11,6 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ents = [
         ProxonNumber(hub.coordinator, hub, entry, REG_LUEFTERSTUFE, "luefterstufe", "Lüfterstufe", "proxon_luefterstufe_nr", 1, 4, 1, "mdi:fan-speed-3", None, 1, "Proxon FWT", "FWT 2.0"),
         ProxonNumber(hub.coordinator, hub, entry, REG_INTENSIVLUEFTUNG_REST, "intensiv_rest", "Intensivlüftung", "proxon_intensiv_nr", 0, 1440, 1, "mdi:fan-plus", "min", 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
+        ProxonNumber(hub.coordinator, hub, entry, REG_ZUGRIFF, "zugriff", "Zugriffsmodus", "proxon_zugriff_nr", 0, 255, 1, "mdi:lock-open-variant", None, 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
     ]
     # Mitteltemperatur als Number-Entities (steuerbar per +/-)
     for room in ROOM_DEFINITIONS:
