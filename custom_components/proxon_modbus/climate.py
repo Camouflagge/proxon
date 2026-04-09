@@ -2,10 +2,10 @@
 
 Proxon Temperatursteuerung:
 - Wohnzimmer (ZBP): Hat eine direkte Soll-Temperatur (Register 70/40071)
-  → Bereich 15-25°C, direkt schreibbar
+  → Bereich 10-30°C, direkt schreibbar (scale 0.01)
 - Nebenpanels (NB): Haben einen Offset von -3 bis +3 (Register 213-218)
   → Soll = Soll_Wohnzimmer + Offset
-  → Bereich bei Basis 20°C: 17-23°C
+  → Bereich 17-23°C
   → Beim Setzen: offset = gewünschte_temp - soll_wohnzimmer
 """
 from __future__ import annotations
@@ -51,9 +51,9 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
             self._attr_min_temp = room["soll_min"]
             self._attr_max_temp = room["soll_max"]
         else:
-            # Offset -3 bis +3, dynamisch abhängig von Basis
-            self._attr_min_temp = 14
-            self._attr_max_temp = 28
+            # Offset -3 bis +3 relativ zu Wohnzimmer Soll
+            self._attr_min_temp = 17
+            self._attr_max_temp = 23
 
     @property
     def device_info(self):

@@ -49,12 +49,14 @@ REG_SOLL_TEMP_WOHNZIMMER = 70   # 40071 (scale 1, raw °C)
 REG_LUFTFEUCHTE_HOLDING = 118   # 40119
 REG_INTENSIVLUEFTUNG_REST = 133 # 40134
 REG_HEIZELEMENT_WOHNZIMMER = 187# 40188
-REG_MITTETEMPERATUR_NB1 = 191   # 40192 (int16, scale 0.1)
+REG_MITTETEMPERATUR_KIND_VORNE = 190  # 40191
+REG_MITTETEMPERATUR_DIELE = 191      # 40192 (int16, scale 0.1)
+REG_MITTETEMPERATUR_KIND_HINTEN = 193 # 40194
+REG_MITTETEMPERATUR_SCHLAFZIMMER = 194 # 40195
 REG_OFFSET_KIND_VORNE = 213     # 40214 (int16, scale 1 → -3..+3)
 REG_OFFSET_DIELE = 214          # 40215
 REG_OFFSET_KIND_HINTEN = 216    # 40217
 REG_OFFSET_SCHLAFEN = 217       # 40218
-REG_MITTETEMPERATUR_HNB = 233   # 40234
 REG_HEIZELEMENT_KIND_VORNE = 253# 40254
 REG_HEIZELEMENT_DIELE = 254     # 40255
 REG_HEIZELEMENT_KIND_HINTEN = 256# 40257
@@ -76,7 +78,7 @@ REG_T300_LEGIONELLEN = 2025     # 42026
 
 # ──── Raum-Definitionen ────
 # mitte_reg = Mitteltemperatur Register (gemittelte/berechnete Temp des Panels)
-# 40459 (HBDE) = Wohnzimmer, 40234 (HNB) = Kind Vorne, 40192 (NB1) = Diele
+# 40459 = Wohnzimmer, 40191 = Kind Vorne, 40192 = Diele, 40194 = Kind Hinten, 40195 = Schlafzimmer
 ROOM_DEFINITIONS = [
     {
         "key": "wohnzimmer", "name": "Wohnzimmer", "panel_type": "ZBP",
@@ -92,7 +94,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_KIND_VORNE,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_KIND_VORNE,
-        "mitte_reg": REG_MITTETEMPERATUR_HNB, "mitte_scale": 1, "mitte_dtype": "uint16",
+        "mitte_reg": REG_MITTETEMPERATUR_KIND_VORNE, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
     {
         "key": "diele", "name": "Diele", "panel_type": "NB1",
@@ -100,7 +102,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_DIELE,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_DIELE,
-        "mitte_reg": REG_MITTETEMPERATUR_NB1, "mitte_scale": 0.1, "mitte_dtype": "int16",
+        "mitte_reg": REG_MITTETEMPERATUR_DIELE, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
     {
         "key": "kind_hinten", "name": "Kind Hinten", "panel_type": "NB3",
@@ -108,7 +110,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_KIND_HINTEN,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_KIND_HINTEN,
-        "mitte_reg": None,  # Kein bekanntes Mitteltemperatur-Register
+        "mitte_reg": REG_MITTETEMPERATUR_KIND_HINTEN, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
     {
         "key": "schlafzimmer", "name": "Schlafzimmer", "panel_type": "NB4",
@@ -116,7 +118,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_SCHLAFEN,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_SCHLAFEN,
-        "mitte_reg": None,  # Kein bekanntes Mitteltemperatur-Register
+        "mitte_reg": REG_MITTETEMPERATUR_SCHLAFZIMMER, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
 ]
 
@@ -144,7 +146,6 @@ SENSOR_DEFINITIONS = [
     {"register": REG_LUFTFEUCHTE_HOLDING, "name": "Luftfeuchte (Holding)", "uid": "feuchte_h", "unit": "%", "dc": "humidity", "sc": "measurement", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:water-percent"},
     {"register": REG_FILTER_NUTZZEIT, "name": "Filter Nutzzeit", "uid": "filter_nutz", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:air-filter"},
     {"register": REG_BETRIEBSSTUNDEN_FWT, "name": "Betriebsstunden", "uid": "betriebsstd", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:clock-outline"},
-    {"register": REG_MITTETEMPERATUR_NB1, "name": "Mittetemperatur NB1", "uid": "mitte_nb1", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "holding", "dt": "int16", "scale": 0.1, "icon": "mdi:thermometer"},
     {"register": REG_ZUGRIFF, "name": "Modbus Zugriffsmodus", "uid": "zugriff", "unit": None, "dc": None, "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:lock-open-variant"},
     {"register": REG_SOLL_TEMP_WOHNZIMMER, "name": "Soll-Temperatur Wohnzimmer", "uid": "soll_wz", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer-check"},
 ]
@@ -158,7 +159,6 @@ T300_SENSOR_DEFINITIONS = [
 SWITCH_DEFINITIONS = [
     {"register": REG_HEIZELEMENT_GLOBAL, "name": "Heizelemente Global", "uid": "heiz_global", "icon": "mdi:radiator"},
     {"register": REG_KUEHLUNG_GLOBAL, "name": "Kühlung", "uid": "kuehlung", "icon": "mdi:snowflake"},
-    {"register": REG_PV_VORRANG, "name": "PV-Vorrang", "uid": "pv_vorrang", "icon": "mdi:solar-power"},
 ]
 
 T300_SWITCH_DEFINITIONS = [
