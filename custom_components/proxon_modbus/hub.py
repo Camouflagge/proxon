@@ -65,11 +65,9 @@ class ProxonModbusHub:
             try:
                 await self._ensure_connected()
                 if input_type == "input":
-                    # KORREKTUR: "slave=" zu "unit=" geändert!
-                    r = await self._client.read_input_registers(address=address, count=count, unit=slave)
+                    r = await self._client.read_input_registers(address, count, slave)
                 else:
-                    # KORREKTUR: "slave=" zu "unit=" geändert!
-                    r = await self._client.read_holding_registers(address=address, count=count, unit=slave)
+                    r = await self._client.read_holding_registers(address, count, slave)
                 if r.isError():
                     _LOGGER.debug("Read error reg %d slave %d: %s", address, slave, r)
                     return None
@@ -89,8 +87,7 @@ class ProxonModbusHub:
                 # Handle negative values for int16
                 if value < 0:
                     value = struct.unpack("H", struct.pack("h", value))[0]
-                # KORREKTUR: "slave=" zu "unit=" geändert!
-                r = await self._client.write_register(address=address, value=int(value), unit=slave)
+                r = await self._client.write_register(address, int(value), slave)
                 if r.isError():
                     _LOGGER.error("Write error reg %d: %s", address, r)
                     return False
