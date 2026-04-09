@@ -11,7 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ents = [
         ProxonNumber(hub.coordinator, hub, entry, REG_LUEFTERSTUFE, "luefterstufe", "Lüfterstufe", "proxon_luefterstufe_nr", 1, 4, 1, "mdi:fan-speed-3", None, 1, "Proxon FWT", "FWT 2.0"),
         ProxonNumber(hub.coordinator, hub, entry, REG_INTENSIVLUEFTUNG_REST, "intensiv_rest", "Intensivlüftung", "proxon_intensiv_nr", 0, 1440, 1, "mdi:fan-plus", "min", 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
-        ProxonNumber(hub.coordinator, hub, entry, REG_ZUGRIFF, "zugriff", "Zugriffsmodus", "proxon_zugriff_nr", 0, 255, 1, "mdi:lock-open-variant", None, 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
+        ProxonNumber(hub.coordinator, hub, entry, REG_ZUGRIFF, "zugriff", "Zugriffsmodus", "proxon_zugriff_nr", 0, 255, 1, "mdi:lock-open-variant", None, 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX, integer_only=True),
     ]
     # Mitteltemperatur als Number-Entities (steuerbar per +/-)
     for room in ROOM_DEFINITIONS:
@@ -32,7 +32,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class ProxonNumber(CoordinatorEntity, NumberEntity):
     _attr_has_entity_name = True
-    def __init__(self, coord, hub, entry, reg, data_key, name, uid, mn, mx, step, icon, unit, scale, dev_name, dev_model, slave_override=None, mode=NumberMode.SLIDER):
+    def __init__(self, coord, hub, entry, reg, data_key, name, uid, mn, mx, step, icon, unit, scale, dev_name, dev_model, slave_override=None, mode=NumberMode.SLIDER, integer_only=False):
         super().__init__(coord)
         self._hub, self._reg, self._data_key, self._scale, self._slave, self._entry = hub, reg, data_key, scale, slave_override, entry
         self._attr_name, self._attr_unique_id = name, uid
@@ -40,6 +40,7 @@ class ProxonNumber(CoordinatorEntity, NumberEntity):
         self._attr_icon, self._attr_native_unit_of_measurement = icon, unit
         self._attr_mode = mode
         self._dev_name, self._dev_model = dev_name, dev_model
+        self._integer_only = integer_only
     @property
     def device_info(self):
         return DeviceInfo(identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._dev_name}")}, name=self._dev_name, manufacturer="Zimmermann / Proxon", model=self._dev_model)
@@ -47,7 +48,7 @@ class ProxonNumber(CoordinatorEntity, NumberEntity):
     def native_value(self):
         return self.coordinator.data.get(self._data_key) if self.coordinator.data else None
     async def async_set_native_value(self, value):
-        if self._attr_native_step == 1 and value != int(value):
+        if self._integer_only and value != int(value):
             raise ValueError(f"Nur ganze Zahlen erlaubt, kein Dezimalwert: {value}")
         rv = int(value / self._scale) if self._scale != 1 else int(value)
         if await self._hub.async_write_register(self._reg, rv, self._slave or self._hub.slave):
