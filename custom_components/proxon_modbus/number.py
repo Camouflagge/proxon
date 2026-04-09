@@ -12,9 +12,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ProxonNumber(hub.coordinator, hub, entry, REG_LUEFTERSTUFE, "luefterstufe", "Lüfterstufe", "proxon_luefterstufe_nr", 1, 4, 1, "mdi:fan-speed-3", None, 1, "Proxon FWT", "FWT 2.0"),
         ProxonNumber(hub.coordinator, hub, entry, REG_INTENSIVLUEFTUNG_REST, "intensiv_rest", "Intensivlüftung", "proxon_intensiv_nr", 0, 1440, 1, "mdi:fan-plus", "min", 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
     ]
+    # Raum-Offsets als Number-Entities (-3 bis +3)
+    for room in ROOM_DEFINITIONS:
+        if room["offset_reg"] is not None:
+            ents.append(ProxonNumber(
+                hub.coordinator, hub, entry,
+                room["offset_reg"], f"offset_{room['key']}",
+                f"Offset {room['name']}", f"proxon_offset_{room['key']}_nr",
+                -3, 3, 1, "mdi:thermometer-plus", "°C", 1,
+                "Proxon FWT", "FWT 2.0",
+            ))
     if entry.data.get(CONF_T300_ENABLED, False):
-        ents.append(ProxonNumber(hub.coordinator, hub, entry, REG_T300_SOLL_TEMP, "t300_soll", "T300 Soll-Temperatur", "proxon_t300_soll_nr", 30, 60, 1, "mdi:thermometer-water", "°C", 1, "Proxon T300", "T300", hub.t300_slave))
-        ents.append(ProxonNumber(hub.coordinator, hub, entry, REG_T300_HEIZSTAB_SOLL, "t300_hs_soll", "T300 Heizstab Soll", "proxon_t300_hs_nr", 0, 60, 1, "mdi:thermometer-alert", "°C", 1, "Proxon T300", "T300", hub.t300_slave))
+        ents.append(ProxonNumber(hub.coordinator, hub, entry, REG_T300_SOLL_TEMP, "t300_soll", "T300 Soll-Temperatur", "proxon_t300_soll_nr", 30, 60, 0.5, "mdi:thermometer-water", "°C", 0.1, "Proxon T300", "T300", hub.t300_slave))
+        ents.append(ProxonNumber(hub.coordinator, hub, entry, REG_T300_HEIZSTAB_SOLL, "t300_hs_soll", "T300 Heizstab Soll", "proxon_t300_hs_nr", 0, 60, 0.5, "mdi:thermometer-alert", "°C", 0.1, "Proxon T300", "T300", hub.t300_slave))
     async_add_entities(ents)
 
 class ProxonNumber(CoordinatorEntity, NumberEntity):

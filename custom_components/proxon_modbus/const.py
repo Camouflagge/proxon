@@ -81,8 +81,8 @@ ROOM_DEFINITIONS = [
     {
         "key": "wohnzimmer", "name": "Wohnzimmer", "panel_type": "ZBP",
         "temp_reg": REG_TEMP_WOHNZIMMER, "temp_input": "input", "temp_scale": 0.01, "temp_dtype": "int16",
-        "offset_reg": None, "soll_reg": REG_SOLL_TEMP_WOHNZIMMER, "soll_scale": 1,
-        "soll_min": 15, "soll_max": 25,
+        "offset_reg": None, "soll_reg": REG_SOLL_TEMP_WOHNZIMMER, "soll_scale": 0.01,
+        "soll_min": 10, "soll_max": 30,
         "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
         "mitte_reg": REG_HBDE_MITTETEMPERATUR, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
@@ -131,9 +131,9 @@ SENSOR_DEFINITIONS = [
     {"register": REG_TEMP_ABLUFT, "name": "Temperatur Abluft", "uid": "t_abluft", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "int16", "scale": 0.01, "icon": "mdi:thermometer"},
     {"register": REG_TEMP_FORTLUFT, "name": "Temperatur Fortluft", "uid": "t_fortluft", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "int16", "scale": 0.01, "icon": "mdi:thermometer"},
     {"register": REG_TEMP_FRISCHLUFT, "name": "Temperatur Frischluft", "uid": "t_frischluft", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "int16", "scale": 0.01, "icon": "mdi:thermometer-low"},
-    {"register": REG_TEMP_VERDAMPFER, "name": "Temperatur Verdampfer", "uid": "t_verdampfer", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "icon": "mdi:thermometer"},
-    {"register": REG_TEMP_KONDENSATOR, "name": "Temperatur Kondensator", "uid": "t_kondensator", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "icon": "mdi:thermometer"},
-    {"register": REG_TEMP_KOMPRESSOR, "name": "Temperatur Kompressor", "uid": "t_kompressor", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "icon": "mdi:thermometer-high"},
+    {"register": REG_TEMP_VERDAMPFER, "name": "Temperatur Verdampfer", "uid": "t_verdampfer", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer"},
+    {"register": REG_TEMP_KONDENSATOR, "name": "Temperatur Kondensator", "uid": "t_kondensator", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer"},
+    {"register": REG_TEMP_KOMPRESSOR, "name": "Temperatur Kompressor", "uid": "t_kompressor", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer-high"},
     {"register": REG_KOMPRESSOR_DZ, "name": "Kompressor Drehzahl", "uid": "komp_dz", "unit": "rpm", "dc": None, "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 1, "icon": "mdi:engine"},
     {"register": REG_KUEHLFUNKTION_KOMP, "name": "Kühlfunktion Kompressor", "uid": "kf_komp", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:snowflake-thermometer"},
     {"register": REG_KUEHLFUNKTION_KOND, "name": "Kühlfunktion Kondensator", "uid": "kf_kond", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:snowflake-thermometer"},
@@ -143,18 +143,16 @@ SENSOR_DEFINITIONS = [
     {"register": REG_INTENSIVLUEFTUNG_REST, "name": "Intensivlüftung Restzeit", "uid": "intensiv_rest", "unit": "min", "dc": "duration", "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:timer-outline"},
     {"register": REG_LUFTFEUCHTE_HOLDING, "name": "Luftfeuchte (Holding)", "uid": "feuchte_h", "unit": "%", "dc": "humidity", "sc": "measurement", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:water-percent"},
     {"register": REG_FILTER_NUTZZEIT, "name": "Filter Nutzzeit", "uid": "filter_nutz", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:air-filter"},
-    {"register": REG_FILTER_STANDZEIT, "name": "Filter Standzeit", "uid": "filter_stand", "unit": "h", "dc": "duration", "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:air-filter"},
     {"register": REG_BETRIEBSSTUNDEN_FWT, "name": "Betriebsstunden", "uid": "betriebsstd", "unit": "h", "dc": "duration", "sc": "total_increasing", "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:clock-outline"},
     {"register": REG_MITTETEMPERATUR_NB1, "name": "Mittetemperatur NB1", "uid": "mitte_nb1", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "holding", "dt": "int16", "scale": 0.1, "icon": "mdi:thermometer"},
     {"register": REG_ZUGRIFF, "name": "Modbus Zugriffsmodus", "uid": "zugriff", "unit": None, "dc": None, "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:lock-open-variant"},
-    {"register": REG_SOLL_TEMP_WOHNZIMMER, "name": "Soll-Temperatur Wohnzimmer", "uid": "soll_wz", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "icon": "mdi:thermometer-check"},
+    {"register": REG_SOLL_TEMP_WOHNZIMMER, "name": "Soll-Temperatur Wohnzimmer", "uid": "soll_wz", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "uint16", "scale": 0.01, "icon": "mdi:thermometer-check"},
 ]
 
 T300_SENSOR_DEFINITIONS = [
     {"register": REG_TEMP_T300_INPUT, "name": "T300 Wassertemperatur", "uid": "t300_temp", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "offset": -100, "icon": "mdi:water-thermometer"},
-    {"register": REG_T300_SOLL_TEMP, "name": "T300 Soll-Temperatur", "uid": "t300_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 1, "offset": 0, "icon": "mdi:thermometer-water"},
-    {"register": REG_T300_HEIZSTAB_SOLL, "name": "T300 Heizstab Soll", "uid": "t300_hs_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 1, "offset": 0, "icon": "mdi:thermometer-alert"},
-    {"register": REG_T300_ZUSTAND, "name": "T300 Zustand", "uid": "t300_zustand", "unit": None, "dc": None, "sc": None, "inp": "holding", "dt": "uint16", "scale": 1, "offset": 0, "icon": "mdi:water-boiler"},
+    {"register": REG_T300_SOLL_TEMP, "name": "T300 Soll-Temperatur", "uid": "t300_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 0.1, "offset": 0, "icon": "mdi:thermometer-water"},
+    {"register": REG_T300_HEIZSTAB_SOLL, "name": "T300 Heizstab Soll", "uid": "t300_hs_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 0.1, "offset": 0, "icon": "mdi:thermometer-alert"},
 ]
 
 SWITCH_DEFINITIONS = [
@@ -165,6 +163,7 @@ SWITCH_DEFINITIONS = [
 
 T300_SWITCH_DEFINITIONS = [
     {"register": REG_T300_HEIZELEMENT, "name": "T300 Heizstab", "uid": "t300_heizstab", "icon": "mdi:water-boiler"},
+    {"register": REG_T300_ZUSTAND, "name": "T300 Warmwasser", "uid": "t300_warmwasser", "icon": "mdi:water-boiler-alert"},
     {"register": REG_T300_PV_VORRANG, "name": "T300 PV-Vorrang", "uid": "t300_pv", "icon": "mdi:solar-power-variant"},
     {"register": REG_T300_LEGIONELLEN, "name": "T300 Legionellenfunktion", "uid": "t300_legio", "icon": "mdi:bacteria"},
 ]
