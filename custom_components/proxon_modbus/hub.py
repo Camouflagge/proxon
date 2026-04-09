@@ -44,9 +44,7 @@ class ProxonModbusHub:
             if not connected:
                 _LOGGER.error("Failed to connect to Proxon at %s:%s", self.host, self.port)
                 return False
-            # Debug: log slave-related attributes on client
-            slave_attrs = [a for a in dir(self._client) if 'slave' in a.lower() or 'unit' in a.lower()]
-            _LOGGER.warning("Proxon connected %s:%s slave=%s, client slave attrs: %s", self.host, self.port, self.slave, slave_attrs)
+            _LOGGER.info("Connected to Proxon at %s:%s (slave %s)", self.host, self.port, self.slave)
             return True
         except Exception as err:
             _LOGGER.error("Error connecting: %s", err)
@@ -66,12 +64,10 @@ class ProxonModbusHub:
         async with self._lock:
             try:
                 await self._ensure_connected()
-                self._client.slave = slave
-                _LOGGER.debug("Reading reg %d type=%s slave=%d client.slave=%s", address, input_type, slave, getattr(self._client, 'slave', 'N/A'))
                 if input_type == "input":
-                    r = await self._client.read_input_registers(address, count=count)
+                    r = await self._client.read_input_registers(address, count=count, device_id=slave)
                 else:
-                    r = await self._client.read_holding_registers(address, count=count)
+                    r = await self._client.read_holding_registers(address, count=count, device_id=slave)
                 if r.isError():
                     _LOGGER.debug("Read error reg %d slave %d: %s", address, slave, r)
                     return None
@@ -91,8 +87,7 @@ class ProxonModbusHub:
                 # Handle negative values for int16
                 if value < 0:
                     value = struct.unpack("H", struct.pack("h", value))[0]
-                self._client.slave = slave
-                r = await self._client.write_register(address, int(value))
+                r = await self._client.write_register(address, int(value), device_id=slave)
                 if r.isError():
                     _LOGGER.error("Write error reg %d: %s", address, r)
                     return False
