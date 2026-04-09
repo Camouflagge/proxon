@@ -10,6 +10,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     hub = hass.data[DOMAIN][entry.entry_id]
     ents = [
         ProxonNumber(hub.coordinator, hub, entry, REG_LUEFTERSTUFE, "luefterstufe", "Lüfterstufe", "proxon_luefterstufe_nr", 1, 4, 1, "mdi:fan-speed-3", None, 1, "Proxon FWT", "FWT 2.0"),
+        ProxonNumber(hub.coordinator, hub, entry, REG_INTENSIVLUEFTUNG_REST, "intensiv_rest", "Intensivlüftung", "proxon_intensiv_nr", 0, 1440, 1, "mdi:fan-plus", "min", 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
     ]
     if entry.data.get(CONF_T300_ENABLED, False):
         ents.append(ProxonNumber(hub.coordinator, hub, entry, REG_T300_SOLL_TEMP, "t300_soll", "T300 Soll-Temperatur", "proxon_t300_soll_nr", 30, 60, 1, "mdi:thermometer-water", "°C", 1, "Proxon T300", "T300", hub.t300_slave))
@@ -18,13 +19,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class ProxonNumber(CoordinatorEntity, NumberEntity):
     _attr_has_entity_name = True
-    _attr_mode = NumberMode.SLIDER
-    def __init__(self, coord, hub, entry, reg, data_key, name, uid, mn, mx, step, icon, unit, scale, dev_name, dev_model, slave_override=None):
+    def __init__(self, coord, hub, entry, reg, data_key, name, uid, mn, mx, step, icon, unit, scale, dev_name, dev_model, slave_override=None, mode=NumberMode.SLIDER):
         super().__init__(coord)
         self._hub, self._reg, self._data_key, self._scale, self._slave, self._entry = hub, reg, data_key, scale, slave_override, entry
         self._attr_name, self._attr_unique_id = name, uid
         self._attr_native_min_value, self._attr_native_max_value, self._attr_native_step = mn, mx, step
         self._attr_icon, self._attr_native_unit_of_measurement = icon, unit
+        self._attr_mode = mode
         self._dev_name, self._dev_model = dev_name, dev_model
     @property
     def device_info(self):

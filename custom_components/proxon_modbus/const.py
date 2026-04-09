@@ -169,5 +169,5 @@ T300_SWITCH_DEFINITIONS = [
     {"register": REG_T300_LEGIONELLEN, "name": "T300 Legionellenfunktion", "uid": "t300_legio", "icon": "mdi:bacteria"},
 ]
 
-BETRIEBSART_MAP = {0: "Aus", 1: "Eco", 2: "Komfort", 3: "Intensiv"}
+BETRIEBSART_MAP = {0: "Aus", 1: "Sommer", 2: "Winter", 3: "Comfort"}
 BETRIEBSART_REVERSE_MAP = {v: k for k, v in BETRIEBSART_MAP.items()}
