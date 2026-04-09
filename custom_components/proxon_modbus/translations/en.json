@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Proxon FWT Modbus Connection",
+        "description": "Configure the Modbus connection to your Proxon FWT heating system.",
+        "data": {
+          "host": "IP Address (Modbus Gateway)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Modbus gateway",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "Proxon FWT is already configured"
+    }
+  }
+}

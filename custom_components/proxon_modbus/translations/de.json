@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Proxon FWT Modbus Verbindung",
+        "description": "Konfiguriere die Modbus-Verbindung zu deinem Proxon FWT System.",
+        "data": {
+          "host": "IP-Adresse (Modbus Gateway)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Modbus Gateway fehlgeschlagen",
+      "unknown": "Unbekannter Fehler"
+    },
+    "abort": {
+      "already_configured": "Proxon FWT ist bereits konfiguriert"
+    }
+  }
+}

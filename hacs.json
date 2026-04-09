@@ -1,0 +1,6 @@
+{
+  "name": "Proxon FWT Modbus",
+  "homeassistant": "2024.1.0",
+  "render_readme": true,
+  "content_in_root": false
+}
