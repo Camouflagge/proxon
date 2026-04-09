@@ -75,6 +75,8 @@ REG_T300_PV_VORRANG = 2010      # 42011
 REG_T300_LEGIONELLEN = 2025     # 42026
 
 # ──── Raum-Definitionen ────
+# mitte_reg = Mitteltemperatur Register (gemittelte/berechnete Temp des Panels)
+# 40459 (HBDE) = Wohnzimmer, 40234 (HNB) = Kind Vorne, 40192 (NB1) = Diele
 ROOM_DEFINITIONS = [
     {
         "key": "wohnzimmer", "name": "Wohnzimmer", "panel_type": "ZBP",
@@ -82,6 +84,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": None, "soll_reg": REG_SOLL_TEMP_WOHNZIMMER, "soll_scale": 1,
         "soll_min": 15, "soll_max": 25,
         "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
+        "mitte_reg": REG_HBDE_MITTETEMPERATUR, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
     {
         "key": "kind_vorne", "name": "Kind Vorne", "panel_type": "Haupt NB",
@@ -89,6 +92,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_KIND_VORNE,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_KIND_VORNE,
+        "mitte_reg": REG_MITTETEMPERATUR_HNB, "mitte_scale": 1, "mitte_dtype": "uint16",
     },
     {
         "key": "diele", "name": "Diele", "panel_type": "NB1",
@@ -96,6 +100,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_DIELE,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_DIELE,
+        "mitte_reg": REG_MITTETEMPERATUR_NB1, "mitte_scale": 0.1, "mitte_dtype": "int16",
     },
     {
         "key": "kind_hinten", "name": "Kind Hinten", "panel_type": "NB3",
@@ -103,6 +108,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_KIND_HINTEN,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_KIND_HINTEN,
+        "mitte_reg": None,  # Kein bekanntes Mitteltemperatur-Register
     },
     {
         "key": "schlafzimmer", "name": "Schlafzimmer", "panel_type": "NB4",
@@ -110,6 +116,7 @@ ROOM_DEFINITIONS = [
         "offset_reg": REG_OFFSET_SCHLAFEN,
         "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
         "heiz_reg": REG_HEIZELEMENT_SCHLAFEN,
+        "mitte_reg": None,  # Kein bekanntes Mitteltemperatur-Register
     },
 ]
 
