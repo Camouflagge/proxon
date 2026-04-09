@@ -169,3 +169,6 @@ T300_SWITCH_DEFINITIONS = [
 
 BETRIEBSART_MAP = {0: "Aus", 1: "Sommer", 2: "Winter", 3: "Comfort"}
 BETRIEBSART_REVERSE_MAP = {v: k for k, v in BETRIEBSART_MAP.items()}
+
+ZUGRIFF_MAP = {0: "0", 1: "1", 2: "2", 55555: "55555"}
+ZUGRIFF_REVERSE_MAP = {v: k for k, v in ZUGRIFF_MAP.items()}
