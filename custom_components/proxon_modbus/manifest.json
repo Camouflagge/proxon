@@ -1,11 +1,11 @@
 {
   "domain": "proxon_modbus",
   "name": "Proxon FWT Modbus",
-  "codeowners": ["@tobias-pellenzit"],
+  "codeowners": ["@Camouflagge"],
   "config_flow": true,
-  "documentation": "https://github.com/tobias-pellenzit/ha-proxon-modbus",
+  "documentation": "https://github.com/Camouflagge/proxon",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/tobias-pellenzit/ha-proxon-modbus/issues",
+  "issue_tracker": "https://github.com/Camouflagge/proxon/issues",
   "requirements": ["pymodbus>=3.6.0"],
   "version": "1.0.0",
   "integration_type": "hub"
