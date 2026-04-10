@@ -19,7 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 hub.coordinator, hub, entry,
                 room["mitte_reg"], f"mitte_{room['key']}",
                 f"Mitteltemperatur {room['name']}", f"proxon_mitte_{room['key']}_nr",
-                10, 30, 0.1, "mdi:thermometer-lines", "°C",
+                -30, 50, 0.1, "mdi:thermometer-lines", "°C",
                 room.get("mitte_scale", 0.1),
                 "Proxon FWT", "FWT 2.0",
                 mode=NumberMode.BOX,
@@ -46,7 +46,7 @@ class ProxonNumber(CoordinatorEntity, NumberEntity):
     def native_value(self):
         return self.coordinator.data.get(self._data_key) if self.coordinator.data else None
     async def async_set_native_value(self, value):
-        rv = int(value / self._scale) if self._scale != 1 else int(value)
+        rv = round(value / self._scale) if self._scale != 1 else int(value)
         if await self._hub.async_write_register(self._reg, rv, self._slave or self._hub.slave):
             self.coordinator.data[self._data_key] = value
             self.async_write_ha_state()

@@ -148,6 +148,11 @@ class ProxonModbusHub:
                 if regs is not None:
                     data[f"heiz_{room['key']}"] = bool(regs[0])
 
+            # Zugriffsmodus (für Select-Entity)
+            regs = await self._read_reg(REG_ZUGRIFF, self.slave, "holding")
+            if regs is not None:
+                data["zugriff"] = int(regs[0])
+
             # Global switches
             for sw in SWITCH_DEFINITIONS:
                 regs = await self._read_reg(sw["register"], self.slave, "holding")
