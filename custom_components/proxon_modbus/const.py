@@ -7,9 +7,38 @@ DEFAULT_SLAVE = 41
 DEFAULT_T300_SLAVE = 41  # T300 Register sind bei den meisten über FWT Slave 41 erreichbar
 DEFAULT_SCAN_INTERVAL = 10
 
+# Verbindungstypen
+CONF_TYPE = "type"
+TYPE_TCP = "tcp"
+TYPE_RTUOVERTCP = "rtuovertcp"
+TYPE_SERIAL = "serial"
+CONNECTION_TYPES = [TYPE_TCP, TYPE_RTUOVERTCP, TYPE_SERIAL]
+
+# Gemeinsam
 CONF_SLAVE = "slave"
 CONF_T300_ENABLED = "t300_enabled"
 CONF_T300_SLAVE = "t300_slave"
+
+# Serielle Parameter
+CONF_DEVICE = "device"
+CONF_BAUDRATE = "baudrate"
+CONF_BYTESIZE = "bytesize"
+CONF_METHOD = "method"
+CONF_PARITY = "parity"
+CONF_STOPBITS = "stopbits"
+
+DEFAULT_DEVICE = "/dev/ttyUSB0"
+DEFAULT_BAUDRATE = 19200
+DEFAULT_BYTESIZE = 8
+DEFAULT_METHOD = "rtu"   # rtu oder ascii
+DEFAULT_PARITY = "E"     # E, N, O
+DEFAULT_STOPBITS = 1     # 1 oder 2
+
+BAUDRATE_OPTIONS = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+BYTESIZE_OPTIONS = [5, 6, 7, 8]
+METHOD_OPTIONS = ["rtu", "ascii"]
+PARITY_OPTIONS = ["E", "N", "O"]  # Even, None, Odd
+STOPBITS_OPTIONS = [1, 2]
 
 PLATFORMS = ["sensor", "switch", "climate", "number", "select"]
 

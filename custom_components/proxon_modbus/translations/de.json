@@ -2,8 +2,15 @@
   "config": {
     "step": {
       "user": {
-        "title": "Proxon FWT Modbus Verbindung",
-        "description": "Konfiguriere die Modbus-Verbindung zu deinem Proxon FWT System.",
+        "title": "Proxon FWT Modbus – Verbindungstyp",
+        "description": "Wähle aus, wie dein Proxon angebunden ist.\n\n• **TCP** – echtes Modbus-TCP Gateway (Protokollwandler)\n• **RTU-over-TCP** – Serial-Server im Transparent-Modus (z.B. Waveshare/USR, reicht RTU-Frames durch)\n• **Seriell** – RS485 direkt via USB-Adapter (z.B. /dev/ttyUSB0)",
+        "data": {
+          "type": "Verbindungstyp"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP Verbindung",
+        "description": "IP-Adresse und Port deines echten Modbus-TCP-Gateways.",
         "data": {
           "host": "IP-Adresse (Modbus Gateway)",
           "port": "Port",
@@ -13,12 +20,75 @@
           "t300_slave": "T300 Slave ID"
         }
       },
+      "rtuovertcp": {
+        "title": "Modbus RTU-over-TCP",
+        "description": "IP-Adresse und Port deines RS485-zu-Ethernet Serial-Servers (z.B. Waveshare/USR im Transparent-Modus). RTU-Frames werden unverändert über TCP getunnelt.",
+        "data": {
+          "host": "IP-Adresse (Serial-Server)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "serial": {
+        "title": "Modbus Seriell (RTU)",
+        "description": "Verbindungsparameter deines RS485-Adapters. Standard für Proxon: 19200 8E1 (RTU).",
+        "data": {
+          "device": "Gerät / Port (z.B. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Datenbits",
+          "method": "Methode",
+          "parity": "Parität",
+          "stopbits": "Stopbits",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
       "reconfigure": {
         "title": "Proxon FWT neu konfigurieren",
-        "description": "Passe die Verbindungsdaten und Einstellungen an. Die Integration wird nach dem Speichern neu geladen.",
+        "description": "Wähle den Verbindungstyp. Im nächsten Schritt kannst du alle Verbindungsdaten anpassen.",
+        "data": {
+          "type": "Verbindungstyp"
+        }
+      },
+      "reconfigure_tcp": {
+        "title": "TCP neu konfigurieren",
+        "description": "Passe die TCP-Verbindungsdaten an. Die Integration wird nach dem Speichern neu geladen.",
         "data": {
           "host": "IP-Adresse (Modbus Gateway)",
           "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure_rtuovertcp": {
+        "title": "RTU-over-TCP neu konfigurieren",
+        "description": "Passe die Daten deines Serial-Servers an. Die Integration wird nach dem Speichern neu geladen.",
+        "data": {
+          "host": "IP-Adresse (Serial-Server)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure_serial": {
+        "title": "Seriell neu konfigurieren",
+        "description": "Passe die seriellen Verbindungsdaten an. Die Integration wird nach dem Speichern neu geladen.",
+        "data": {
+          "device": "Gerät / Port (z.B. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Datenbits",
+          "method": "Methode",
+          "parity": "Parität",
+          "stopbits": "Stopbits",
           "slave": "Slave ID",
           "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
           "t300_enabled": "T300 Warmwasserspeicher vorhanden",
@@ -33,6 +103,28 @@
     "abort": {
       "already_configured": "Proxon FWT ist bereits konfiguriert",
       "reconfigure_successful": "Neukonfiguration erfolgreich"
+    }
+  },
+  "selector": {
+    "connection_type": {
+      "options": {
+        "tcp": "Modbus TCP (echtes Gateway)",
+        "rtuovertcp": "Modbus RTU-over-TCP (Serial-Server / Waveshare transparent)",
+        "serial": "Modbus Seriell / RTU (USB / RS485)"
+      }
+    },
+    "method": {
+      "options": {
+        "rtu": "RTU (binär)",
+        "ascii": "ASCII"
+      }
+    },
+    "parity": {
+      "options": {
+        "E": "Even (gerade)",
+        "N": "None (keine)",
+        "O": "Odd (ungerade)"
+      }
     }
   }
 }

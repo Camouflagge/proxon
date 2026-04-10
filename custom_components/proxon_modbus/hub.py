@@ -4,8 +4,18 @@ import asyncio, logging, struct
 from datetime import timedelta
 from typing import Any
 
-from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.client import AsyncModbusTcpClient, AsyncModbusSerialClient
 from pymodbus.exceptions import ModbusException
+
+try:
+    # pymodbus >= 3.6
+    from pymodbus.framer import FramerType
+    _FRAMER_RTU = FramerType.RTU
+except Exception:  # pragma: no cover - fallback for older pymodbus
+    try:
+        from pymodbus.framer.rtu_framer import ModbusRtuFramer as _FRAMER_RTU  # type: ignore
+    except Exception:
+        _FRAMER_RTU = None
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -18,15 +28,43 @@ READ_DELAY = 0.05  # 50ms between reads
 
 
 class ProxonModbusHub:
-    def __init__(self, hass, host, port, slave, t300_enabled, t300_slave, scan_interval):
+    def __init__(
+        self,
+        hass,
+        conn_type: str,
+        slave: int,
+        t300_enabled: bool,
+        t300_slave: int,
+        scan_interval: int,
+        # TCP
+        host: str | None = None,
+        port: int | None = None,
+        # Serial
+        device: str | None = None,
+        baudrate: int | None = None,
+        bytesize: int | None = None,
+        method: str | None = None,
+        parity: str | None = None,
+        stopbits: int | None = None,
+    ):
         self.hass = hass
+        self.conn_type = conn_type
+        # TCP
         self.host = host
         self.port = port
+        # Serial
+        self.device = device
+        self.baudrate = baudrate
+        self.bytesize = bytesize
+        self.method = method
+        self.parity = parity
+        self.stopbits = stopbits
+        # Shared
         self.slave = slave
         self.t300_enabled = t300_enabled
         self.t300_slave = t300_slave
         self.scan_interval = scan_interval
-        self._client: AsyncModbusTcpClient | None = None
+        self._client = None
         self._lock = asyncio.Lock()
         self.data: dict[str, Any] = {}
         self.coordinator = DataUpdateCoordinator(
@@ -35,16 +73,41 @@ class ProxonModbusHub:
             update_interval=timedelta(seconds=scan_interval),
         )
 
+    def _describe(self) -> str:
+        """Human-readable connection description for logs."""
+        if self.conn_type == TYPE_SERIAL:
+            return f"serial {self.device} @ {self.baudrate} {self.bytesize}{self.parity}{self.stopbits} ({self.method})"
+        if self.conn_type == TYPE_RTUOVERTCP:
+            return f"rtuovertcp {self.host}:{self.port}"
+        return f"tcp {self.host}:{self.port}"
+
     async def async_connect(self) -> bool:
         try:
-            self._client = AsyncModbusTcpClient(
-                host=self.host, port=self.port, timeout=10,
-            )
+            if self.conn_type == TYPE_SERIAL:
+                self._client = AsyncModbusSerialClient(
+                    port=self.device,
+                    baudrate=self.baudrate,
+                    bytesize=self.bytesize,
+                    parity=self.parity,
+                    stopbits=self.stopbits,
+                    timeout=10,
+                )
+            elif self.conn_type == TYPE_RTUOVERTCP:
+                # Raw RTU frames tunneled over a TCP socket (e.g. Waveshare/USR
+                # serial server in "transparent" mode – no protocol conversion).
+                kwargs = {"host": self.host, "port": self.port, "timeout": 10}
+                if _FRAMER_RTU is not None:
+                    kwargs["framer"] = _FRAMER_RTU
+                self._client = AsyncModbusTcpClient(**kwargs)
+            else:
+                self._client = AsyncModbusTcpClient(
+                    host=self.host, port=self.port, timeout=10,
+                )
             connected = await self._client.connect()
             if not connected:
-                _LOGGER.error("Failed to connect to Proxon at %s:%s", self.host, self.port)
+                _LOGGER.error("Failed to connect to Proxon (%s)", self._describe())
                 return False
-            _LOGGER.info("Connected to Proxon at %s:%s (slave %s)", self.host, self.port, self.slave)
+            _LOGGER.info("Connected to Proxon (%s, slave %s)", self._describe(), self.slave)
             return True
         except Exception as err:
             _LOGGER.error("Error connecting: %s", err)

@@ -8,6 +8,10 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import (
     DOMAIN, DEFAULT_PORT, DEFAULT_SLAVE, DEFAULT_T300_SLAVE,
     DEFAULT_SCAN_INTERVAL, CONF_SLAVE, CONF_T300_ENABLED, CONF_T300_SLAVE,
+    CONF_TYPE, TYPE_TCP, TYPE_SERIAL,
+    CONF_DEVICE, CONF_BAUDRATE, CONF_BYTESIZE, CONF_METHOD, CONF_PARITY, CONF_STOPBITS,
+    DEFAULT_DEVICE, DEFAULT_BAUDRATE, DEFAULT_BYTESIZE, DEFAULT_METHOD,
+    DEFAULT_PARITY, DEFAULT_STOPBITS,
 )
 from .hub import ProxonModbusHub
 
@@ -20,21 +24,30 @@ PLATFORMS_LIST = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Proxon FWT from a config entry."""
+    conn_type = entry.data.get(CONF_TYPE, TYPE_TCP)
     hub = ProxonModbusHub(
         hass=hass,
-        host=entry.data[CONF_HOST],
-        port=entry.data.get(CONF_PORT, DEFAULT_PORT),
+        conn_type=conn_type,
         slave=entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
         t300_enabled=entry.data.get(CONF_T300_ENABLED, False),
         t300_slave=entry.data.get(CONF_T300_SLAVE, DEFAULT_T300_SLAVE),
         scan_interval=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        # TCP
+        host=entry.data.get(CONF_HOST),
+        port=entry.data.get(CONF_PORT, DEFAULT_PORT),
+        # Serial
+        device=entry.data.get(CONF_DEVICE, DEFAULT_DEVICE),
+        baudrate=entry.data.get(CONF_BAUDRATE, DEFAULT_BAUDRATE),
+        bytesize=entry.data.get(CONF_BYTESIZE, DEFAULT_BYTESIZE),
+        method=entry.data.get(CONF_METHOD, DEFAULT_METHOD),
+        parity=entry.data.get(CONF_PARITY, DEFAULT_PARITY),
+        stopbits=entry.data.get(CONF_STOPBITS, DEFAULT_STOPBITS),
     )
 
     try:
         if not await hub.async_connect():
             raise ConfigEntryNotReady(
-                f"Cannot connect to Proxon Modbus at "
-                f"{entry.data[CONF_HOST]}:{entry.data.get(CONF_PORT, DEFAULT_PORT)}"
+                f"Cannot connect to Proxon Modbus ({hub._describe()})"
             )
     except Exception as err:
         raise ConfigEntryNotReady(

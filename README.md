@@ -2,7 +2,7 @@
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
-Custom Integration für **Proxon / Zimmermann Lüftungsheizungen** (FWT 2.0) und den **T300 Warmwasserspeicher** via Modbus TCP.
+Custom Integration für **Proxon / Zimmermann Lüftungsheizungen** (FWT 2.0 / P2 V2.0) und den **T300 Warmwasserspeicher** — wahlweise via **Modbus TCP** (echtes Gateway), **Modbus RTU-over-TCP** (Waveshare/USR Serial-Server im Transparent-Modus) oder **Modbus Seriell / RTU** (USB-RS485-Adapter direkt am HA-Host).
 
 ## Panel-Setup (getestet)
 
@@ -62,17 +62,45 @@ Damit Home Assistant Werte auf die Proxon schreiben kann, muss der **Zugriffsmod
 
 > **Hinweis:** Solange der Zugriffsmodus nicht auf `2` steht, werden alle Schreiboperationen (Temperatur, Lüfterstufe, Switches, …) von der Proxon ignoriert. Lesen funktioniert trotzdem.
 
-## Hardware
+## Hardware & Verbindungsarten
 
-- Proxon FWT 2.0 mit Modbus (X6 auf der Hauptplatine)
-- RS485-zu-Ethernet Adapter (z.B. Waveshare) oder RS485-zu-USB
+Die Integration unterstützt **drei Verbindungstypen**, die bei der Einrichtung über ein Dropdown ausgewählt werden:
+
+### 1. Modbus TCP (echtes Gateway)
+Empfohlen, wenn du ein echtes Modbus-TCP-Gateway (Protokollwandler) vor der Proxon hast. Nur zwei Eingaben:
+- IP-Adresse
+- Port (Standard: 502)
+
+### 2. Modbus RTU-over-TCP (Waveshare / USR im Transparent-Modus)
+Empfohlen, wenn du einen **RS485-zu-Ethernet Serial-Server** (z.B. **Waveshare**, USR-TCP232, Elfin EW11, …) im **Transparent-/Pass-Through-Modus** betreibst. Diese Adapter reichen die RTU-Frames einfach 1:1 über eine TCP-Verbindung durch — sie machen also **keine echte Protokollumwandlung**. Eingaben:
+- IP-Adresse des Serial-Servers
+- Port (z.B. 502, 8899, 26 … je nach Adapter)
+
+> **Hinweis**: Wenn du nicht sicher bist, ob dein Gateway „echtes" Modbus-TCP spricht oder nur RTU transparent weiterleitet: Probiere zuerst **TCP**. Wenn das Timeouts/Paritätsfehler liefert, wechsel auf **RTU-over-TCP**. Waveshare-Adapter in der Standardkonfiguration sind meistens RTU-over-TCP.
+
+### 3. Modbus Seriell / RTU (USB / RS485)
+Empfohlen, wenn du einen **RS485-zu-USB-Adapter** direkt am HA-Host (z.B. Raspberry Pi, Proxmox VM mit USB-Passthrough) angeschlossen hast. Der Device-Pfad wird direkt eingegeben (z.B. `/dev/ttyUSB0`), alle Parameter sind Dropdowns:
+- **Gerät/Port** (z.B. `/dev/ttyUSB0`, `/dev/serial/by-id/...`)
+- **Baudrate** (1200–115200)
+- **Datenbits** (5–8)
+- **Methode** (RTU / ASCII)
+- **Parität** (Even / None / Odd)
+- **Stopbits** (1 / 2)
+
+### Proxon-Standardparameter (RTU)
 
 | Parameter | Wert |
 |-----------|------|
 | Baudrate | 19200 |
-| Parity | Even |
-| Stop Bits | 1 |
+| Datenbits | 8 |
+| Parität | Even (E) |
+| Stopbits | 1 |
+| Methode | RTU |
 | Slave ID (FWT) | 41 |
+
+Anschluss am Proxon: **X6 auf der Hauptplatine**.
+
+> **Neu konfigurieren**: Über das 3-Punkte-Menü → „Neu konfigurieren" auf der Integration kannst du jederzeit zwischen TCP, RTU-over-TCP und Seriell wechseln, oder Parameter anpassen — ohne die Integration zu löschen. Entity-IDs, Historie und Automatisierungen bleiben erhalten.
 
 > **Wichtig**: Damit HA Werte schreiben kann, muss der **Zugriffsmodus** auf **2** gesetzt sein – siehe Abschnitt [Schreibzugriff aktivieren](#schreibzugriff-aktivieren-zugriffsmodus).
 

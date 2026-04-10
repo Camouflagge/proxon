@@ -2,11 +2,46 @@
   "config": {
     "step": {
       "user": {
-        "title": "Proxon FWT Modbus Connection",
-        "description": "Configure the Modbus connection to your Proxon FWT heating system.",
+        "title": "Proxon FWT Modbus – Connection type",
+        "description": "Select how your Proxon is connected.\n\n• **TCP** – real Modbus-TCP gateway (protocol converter)\n• **RTU-over-TCP** – serial server in transparent mode (e.g. Waveshare/USR, tunnels RTU frames over TCP)\n• **Serial** – RS485 directly via USB adapter (e.g. /dev/ttyUSB0)",
         "data": {
-          "host": "IP Address (Modbus Gateway)",
+          "type": "Connection type"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP Connection",
+        "description": "IP address and port of your real Modbus TCP gateway.",
+        "data": {
+          "host": "IP address (Modbus gateway)",
           "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "rtuovertcp": {
+        "title": "Modbus RTU-over-TCP",
+        "description": "IP address and port of your RS485-to-Ethernet serial server (e.g. Waveshare/USR in transparent mode). RTU frames are tunneled unchanged over TCP.",
+        "data": {
+          "host": "IP address (serial server)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "serial": {
+        "title": "Modbus Serial (RTU)",
+        "description": "Connection parameters of your RS485 adapter. Proxon default: 19200 8E1 (RTU).",
+        "data": {
+          "device": "Device / Port (e.g. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Data bits",
+          "method": "Method",
+          "parity": "Parity",
+          "stopbits": "Stop bits",
           "slave": "Slave ID",
           "scan_interval": "Scan Interval (seconds, 1-60)",
           "t300_enabled": "T300 hot water tank installed",
@@ -15,10 +50,45 @@
       },
       "reconfigure": {
         "title": "Reconfigure Proxon FWT",
-        "description": "Update connection data and settings. The integration will be reloaded after saving.",
+        "description": "Choose the connection type. On the next step you can update all connection details.",
         "data": {
-          "host": "IP Address (Modbus Gateway)",
+          "type": "Connection type"
+        }
+      },
+      "reconfigure_tcp": {
+        "title": "Reconfigure TCP",
+        "description": "Update TCP connection data. The integration will be reloaded after saving.",
+        "data": {
+          "host": "IP address (Modbus gateway)",
           "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure_rtuovertcp": {
+        "title": "Reconfigure RTU-over-TCP",
+        "description": "Update serial server connection data. The integration will be reloaded after saving.",
+        "data": {
+          "host": "IP address (serial server)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure_serial": {
+        "title": "Reconfigure Serial",
+        "description": "Update the serial connection data. The integration will be reloaded after saving.",
+        "data": {
+          "device": "Device / Port (e.g. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Data bits",
+          "method": "Method",
+          "parity": "Parity",
+          "stopbits": "Stop bits",
           "slave": "Slave ID",
           "scan_interval": "Scan Interval (seconds, 1-60)",
           "t300_enabled": "T300 hot water tank installed",
@@ -33,6 +103,28 @@
     "abort": {
       "already_configured": "Proxon FWT is already configured",
       "reconfigure_successful": "Reconfiguration successful"
+    }
+  },
+  "selector": {
+    "connection_type": {
+      "options": {
+        "tcp": "Modbus TCP (real gateway)",
+        "rtuovertcp": "Modbus RTU-over-TCP (serial server / Waveshare transparent)",
+        "serial": "Modbus Serial / RTU (USB / RS485)"
+      }
+    },
+    "method": {
+      "options": {
+        "rtu": "RTU (binary)",
+        "ascii": "ASCII"
+      }
+    },
+    "parity": {
+      "options": {
+        "E": "Even",
+        "N": "None",
+        "O": "Odd"
+      }
     }
   }
 }
