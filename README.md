@@ -1,8 +1,15 @@
 # Proxon FWT Modbus – Home Assistant Custom Integration
 
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-camouflagge-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/camouflagge)
 
 Custom Integration für **Proxon / Zimmermann Lüftungsheizungen** (FWT 2.0 / P2 V2.0) und den **T300 Warmwasserspeicher** — wahlweise via **Modbus TCP** (echtes Gateway), **Modbus RTU-over-TCP** (Waveshare/USR Serial-Server im Transparent-Modus) oder **Modbus Seriell / RTU** (USB-RS485-Adapter direkt am HA-Host).
+
+<p align="left">
+  <a href="https://www.buymeacoffee.com/camouflagge" target="_blank">
+    <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" height="41" width="174" style="box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);">
+  </a>
+</p>
 
 ## Panel-Setup (getestet)
 
@@ -113,6 +120,16 @@ Anschluss am Proxon: **X6 auf der Hauptplatine**.
 ## Credits
 
 Basierend auf der HA-Community: [Thread](https://community.home-assistant.io/t/add-proxon-heating-system-to-ha-via-modbus/585674), [Stroett/HA_config_Proxon](https://github.com/Stroett/HA_config_Proxon), [AgentP38](https://github.com/AgentP38/Proxxon-HomeAssistant)
+
+## Support
+
+Wenn dir die Integration Arbeit abnimmt und du die Weiterentwicklung unterstützen möchtest, freue ich mich über einen Kaffee ☕
+
+<p align="left">
+  <a href="https://www.buymeacoffee.com/camouflagge" target="_blank">
+    <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" height="41" width="174" style="box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);">
+  </a>
+</p>
 
 ## Lizenz
 MIT
