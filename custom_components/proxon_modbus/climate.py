@@ -33,7 +33,11 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
     _attr_has_entity_name = True
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
+    )
     _attr_target_temperature_step = 1.0
 
     def __init__(self, coord, hub, entry, room):
@@ -126,3 +130,9 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
         elif hvac_mode == HVACMode.HEAT:
             await self._hub.async_write_register(r["heiz_reg"], 1)
         await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self):
+        await self.async_set_hvac_mode(HVACMode.HEAT)
+
+    async def async_turn_off(self):
+        await self.async_set_hvac_mode(HVACMode.OFF)
