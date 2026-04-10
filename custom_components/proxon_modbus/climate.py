@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_entities):
     hub = hass.data[DOMAIN][entry.entry_id]
     ents = []
-    for room in ROOM_DEFINITIONS:
+    for room in hub.rooms:
         ents.append(ProxonClimate(hub.coordinator, hub, entry, room))
     async_add_entities(ents)
 

@@ -105,51 +105,146 @@ REG_T300_HEIZSTAB_SOLL = 2003   # 42004
 REG_T300_PV_VORRANG = 2010      # 42011
 REG_T300_LEGIONELLEN = 2025     # 42026
 
-# ──── Raum-Definitionen ────
-# mitte_reg = Mitteltemperatur Register (gemittelte/berechnete Temp des Panels)
-# 40459 = Wohnzimmer, 40191 = Kind Vorne, 40192 = Diele, 40194 = Kind Hinten, 40195 = Schlafzimmer
-ROOM_DEFINITIONS = [
-    {
-        "key": "wohnzimmer", "name": "Wohnzimmer", "panel_type": "ZBP",
-        "temp_reg": REG_TEMP_WOHNZIMMER, "temp_input": "input", "temp_scale": 0.01, "temp_dtype": "int16",
-        "offset_reg": None, "soll_reg": REG_SOLL_TEMP_WOHNZIMMER, "soll_scale": 0.01,
-        "soll_min": 10, "soll_max": 30,
-        "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
-        "mitte_reg": REG_HBDE_MITTETEMPERATUR, "mitte_scale": 0.1, "mitte_dtype": "int16",
-    },
-    {
-        "key": "kind_vorne", "name": "Kind Vorne", "panel_type": "Haupt NB",
-        "temp_reg": REG_TEMP_KIND_VORNE, "temp_input": "input", "temp_scale": 0.1, "temp_dtype": "int16",
-        "offset_reg": REG_OFFSET_KIND_VORNE,
-        "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
-        "heiz_reg": REG_HEIZELEMENT_KIND_VORNE,
-        "mitte_reg": REG_MITTETEMPERATUR_KIND_VORNE, "mitte_scale": 0.1, "mitte_dtype": "int16",
-    },
-    {
-        "key": "diele", "name": "Diele", "panel_type": "NB1",
-        "temp_reg": REG_TEMP_DIELE, "temp_input": "input", "temp_scale": 0.1, "temp_dtype": "int16",
-        "offset_reg": REG_OFFSET_DIELE,
-        "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
-        "heiz_reg": REG_HEIZELEMENT_DIELE,
-        "mitte_reg": REG_MITTETEMPERATUR_DIELE, "mitte_scale": 0.1, "mitte_dtype": "int16",
-    },
-    {
-        "key": "kind_hinten", "name": "Kind Hinten", "panel_type": "NB3",
-        "temp_reg": REG_TEMP_KIND_HINTEN, "temp_input": "input", "temp_scale": 0.1, "temp_dtype": "int16",
-        "offset_reg": REG_OFFSET_KIND_HINTEN,
-        "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
-        "heiz_reg": REG_HEIZELEMENT_KIND_HINTEN,
-        "mitte_reg": REG_MITTETEMPERATUR_KIND_HINTEN, "mitte_scale": 0.1, "mitte_dtype": "int16",
-    },
-    {
-        "key": "schlafzimmer", "name": "Schlafzimmer", "panel_type": "NB4",
-        "temp_reg": REG_TEMP_SCHLAFEN, "temp_input": "input", "temp_scale": 0.1, "temp_dtype": "int16",
-        "offset_reg": REG_OFFSET_SCHLAFEN,
-        "soll_reg": None, "soll_scale": None, "soll_min": None, "soll_max": None,
-        "heiz_reg": REG_HEIZELEMENT_SCHLAFEN,
-        "mitte_reg": REG_MITTETEMPERATUR_SCHLAFZIMMER, "mitte_scale": 0.1, "mitte_dtype": "int16",
-    },
-]
+# ──── Panel Auto-Discovery ────
+# Namens-Register: ab 4x0621 (pymodbus offset 620), 10 Register pro Slot,
+# 2 Latin-1 Bytes pro Register. Recherche/Entdeckung der Adressen: @Oponn4
+# (siehe https://github.com/Camouflagge/proxon/pull/3). Vom Nutzer verifiziert
+# gegen eine FWT 2.0 mit realem Setup (slot 0..11 getestet).
+NAME_REG_BASE = 620              # pymodbus offset (= Modicon 40621)
+NAME_REG_STRIDE = 10             # Register-Abstand zwischen zwei Slots
+NAME_REG_COUNT = 10              # Register pro Slot (→ 20 Latin-1 Zeichen max)
+PANEL_SLOT_COUNT = 12            # wir lesen bis zu 12 Slots: ZBP + HNBE + NB1..NB10
+
+# Slot-Layout:
+#   0       = ZBP  (Zentralbedienpanel / Hauptpanel, Wohnzimmer)
+#   1       = HNBE (Haupt-Nebenpanel)
+#   2..11   = NB1..NB10 (Nebenpanels)
+SLOT_ZBP = 0
+SLOT_HNBE = 1
+SLOT_FIRST_NBE = 2
+
+# Regex-Pattern für Default-Namen (Slot wird als unbenutzt gewertet, Entität
+# wird NICHT angelegt). Matcht z.B. "Raum 1", "Raum 12", "raum42", "RAUM  3".
+DEFAULT_NAME_REGEX = r"^Raum\s*\d+$"
+
+# Slots, die IMMER angelegt werden – auch wenn die Namens-Lesung fehlschlägt.
+# ZBP (Wohnzimmer) und HNBE sind auf praktisch jeder FWT 2.0 vorhanden.
+ALWAYS_ACTIVE_SLOTS = (SLOT_ZBP, SLOT_HNBE)
+
+# Fallback-Namen, wenn Discovery fehlschlägt oder einen Default-Namen liefert.
+FALLBACK_SLOT_NAMES = {
+    SLOT_ZBP: "Wohnzimmer",
+    SLOT_HNBE: "Haupt-Nebenpanel",
+}
+
+
+def slot_key(slot: int) -> str:
+    """Stable key/unique-id component for a slot.
+
+    These keys become part of every entity's unique_id. They MUST never
+    change, even if the user renames the panel in the device, otherwise
+    entity history and automations would break.
+
+        slot 0  → "zbp"      (Hauptpanel)
+        slot 1  → "hnbe"     (Haupt-Nebenpanel)
+        slot 2  → "nb1"
+        slot 11 → "nb10"
+    """
+    if slot == SLOT_ZBP:
+        return "zbp"
+    if slot == SLOT_HNBE:
+        return "hnbe"
+    return f"nb{slot - SLOT_FIRST_NBE + 1}"
+
+
+def slot_panel_type(slot: int) -> str:
+    """Human-readable panel type label (attribute value, not unique_id)."""
+    if slot == SLOT_ZBP:
+        return "ZBP"
+    if slot == SLOT_HNBE:
+        return "HNBE"
+    return f"NB{slot - SLOT_FIRST_NBE + 1}"
+
+
+def slot_name_reg(slot: int) -> int:
+    """Start register (pymodbus offset) of the 10-register name block."""
+    return NAME_REG_BASE + slot * NAME_REG_STRIDE
+
+
+def build_room_def(slot: int, name: str) -> dict:
+    """Construct a room-definition dict for a given slot.
+
+    Register addresses are derived algebraically from the slot index, using
+    formulas verified against the previously hard-coded definitions for
+    slots 1..5 (HNBE, NB1, NB3, NB4) in v1.8.x:
+
+        slot ≥ 1 (HNBE and NBx):
+            temp_reg   = 587 + slot * 3   (input register, int16, scale 0.1)
+            mitte_reg  = 189 + slot       (holding, int16, scale 0.1)
+            offset_reg = 212 + slot       (holding, int16, scale 1, -3..+3)
+            heiz_reg   = 252 + slot       (holding, uint16, 0/1)
+
+    Slot 0 (ZBP = Wohnzimmer / Hauptpanel) is special: it has a direct
+    target-temperature register (40071) with 10-30°C range instead of an
+    offset, and uses the dedicated Wohnzimmer registers.
+    """
+    key = slot_key(slot)
+    panel_type = slot_panel_type(slot)
+
+    if slot == SLOT_ZBP:
+        return {
+            "slot": slot,
+            "key": key,
+            "name": name,
+            "panel_type": panel_type,
+            "temp_reg": REG_TEMP_WOHNZIMMER,
+            "temp_input": "input",
+            "temp_scale": 0.01,
+            "temp_dtype": "int16",
+            "offset_reg": None,
+            "soll_reg": REG_SOLL_TEMP_WOHNZIMMER,
+            "soll_scale": 0.01,
+            "soll_min": 10,
+            "soll_max": 30,
+            "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
+            "mitte_reg": REG_HBDE_MITTETEMPERATUR,
+            "mitte_scale": 0.1,
+            "mitte_dtype": "int16",
+        }
+
+    # HNBE (slot 1) and NBx (slot ≥ 2) share the same formula-derived layout.
+    return {
+        "slot": slot,
+        "key": key,
+        "name": name,
+        "panel_type": panel_type,
+        "temp_reg": 587 + slot * 3,
+        "temp_input": "input",
+        "temp_scale": 0.1,
+        "temp_dtype": "int16",
+        "offset_reg": 212 + slot,
+        "soll_reg": None,
+        "soll_scale": None,
+        "soll_min": None,
+        "soll_max": None,
+        "heiz_reg": 252 + slot,
+        "mitte_reg": 189 + slot,
+        "mitte_scale": 0.1,
+        "mitte_dtype": "int16",
+    }
+
+
+# Mapping alte unique_id-Keys → neue slot_key() Werte.
+# Wird von __init__.py async_migrate_entry genutzt, um Entitäten aus v1.8.x
+# auf die neuen stabilen Slot-IDs zu migrieren, ohne dass der Nutzer seine
+# Automationen, Dashboards und Historien verliert.
+LEGACY_KEY_TO_SLOT_KEY = {
+    "wohnzimmer":   "zbp",    # slot 0
+    "kind_vorne":   "hnbe",   # slot 1 (Haupt NB)
+    "diele":        "nb1",    # slot 2
+    "kind_hinten":  "nb3",    # slot 4 (Register 599 → slot 4 per Formel)
+    "schlafzimmer": "nb4",    # slot 5 (Register 602 → slot 5 per Formel)
+}
 
 # ──── System-Sensoren ────
 SENSOR_DEFINITIONS = [
