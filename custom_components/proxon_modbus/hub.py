@@ -7,15 +7,21 @@ from typing import Any
 from pymodbus.client import AsyncModbusTcpClient, AsyncModbusSerialClient
 from pymodbus.exceptions import ModbusException
 
+# ── Framer auflösen (pymodbus 3.6+ und ältere Versionen) ──
+_FRAMER_RTU = None
+_FRAMER_SOURCE = "none"
 try:
     # pymodbus >= 3.6
-    from pymodbus.framer import FramerType
+    from pymodbus.framer import FramerType  # type: ignore
     _FRAMER_RTU = FramerType.RTU
-except Exception:  # pragma: no cover - fallback for older pymodbus
+    _FRAMER_SOURCE = "FramerType.RTU"
+except (ImportError, AttributeError):
     try:
-        from pymodbus.framer.rtu_framer import ModbusRtuFramer as _FRAMER_RTU  # type: ignore
-    except Exception:
-        _FRAMER_RTU = None
+        from pymodbus.framer.rtu_framer import ModbusRtuFramer  # type: ignore
+        _FRAMER_RTU = ModbusRtuFramer
+        _FRAMER_SOURCE = "ModbusRtuFramer"
+    except ImportError:
+        pass
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -81,28 +87,43 @@ class ProxonModbusHub:
             return f"rtuovertcp {self.host}:{self.port}"
         return f"tcp {self.host}:{self.port}"
 
+    def _build_client(self):
+        """Create a pymodbus client matching the configured connection type."""
+        if self.conn_type == TYPE_SERIAL:
+            return AsyncModbusSerialClient(
+                port=self.device,
+                baudrate=self.baudrate,
+                bytesize=self.bytesize,
+                parity=self.parity,
+                stopbits=self.stopbits,
+                timeout=10,
+            )
+        if self.conn_type == TYPE_RTUOVERTCP:
+            # Raw RTU frames tunneled over a TCP socket (e.g. Waveshare/USR
+            # serial server in "transparent" mode – no protocol conversion).
+            if _FRAMER_RTU is None:
+                raise RuntimeError(
+                    "pymodbus has no RTU framer available – cannot use rtuovertcp"
+                )
+            try:
+                return AsyncModbusTcpClient(
+                    host=self.host, port=self.port, framer=_FRAMER_RTU, timeout=10,
+                )
+            except TypeError:
+                # Very old pymodbus: framer kwarg missing – fall back to positional
+                return AsyncModbusTcpClient(
+                    self.host, self.port, _FRAMER_RTU, timeout=10,
+                )
+        # default: real Modbus-TCP (MBAP)
+        return AsyncModbusTcpClient(host=self.host, port=self.port, timeout=10)
+
     async def async_connect(self) -> bool:
         try:
-            if self.conn_type == TYPE_SERIAL:
-                self._client = AsyncModbusSerialClient(
-                    port=self.device,
-                    baudrate=self.baudrate,
-                    bytesize=self.bytesize,
-                    parity=self.parity,
-                    stopbits=self.stopbits,
-                    timeout=10,
-                )
-            elif self.conn_type == TYPE_RTUOVERTCP:
-                # Raw RTU frames tunneled over a TCP socket (e.g. Waveshare/USR
-                # serial server in "transparent" mode – no protocol conversion).
-                kwargs = {"host": self.host, "port": self.port, "timeout": 10}
-                if _FRAMER_RTU is not None:
-                    kwargs["framer"] = _FRAMER_RTU
-                self._client = AsyncModbusTcpClient(**kwargs)
-            else:
-                self._client = AsyncModbusTcpClient(
-                    host=self.host, port=self.port, timeout=10,
-                )
+            self._client = self._build_client()
+            _LOGGER.info(
+                "Proxon: opening connection mode=%s target=%s slave=%s framer=%s",
+                self.conn_type, self._describe(), self.slave, _FRAMER_SOURCE,
+            )
             connected = await self._client.connect()
             if not connected:
                 _LOGGER.error("Failed to connect to Proxon (%s)", self._describe())
@@ -110,8 +131,43 @@ class ProxonModbusHub:
             _LOGGER.info("Connected to Proxon (%s, slave %s)", self._describe(), self.slave)
             return True
         except Exception as err:
-            _LOGGER.error("Error connecting: %s", err)
+            _LOGGER.error("Error connecting to Proxon (%s): %s", self._describe(), err)
             return False
+
+    async def async_test_connection(self) -> tuple[bool, str | None]:
+        """Try to connect and read one register to validate the config.
+
+        Used by the config flow. Always closes the probe client afterwards.
+        Returns (ok, error_message).
+        """
+        client = None
+        try:
+            client = self._build_client()
+            connected = await client.connect()
+            if not connected:
+                return False, f"connect failed ({self._describe()})"
+            # Probe: read one holding register (Betriebsart) – tolerant to
+            # devices that only expose some of the ranges.
+            try:
+                r = await client.read_holding_registers(
+                    REG_BETRIEBSART, count=1, device_id=self.slave,
+                )
+            except TypeError:
+                # Older pymodbus uses `slave=` kwarg
+                r = await client.read_holding_registers(
+                    REG_BETRIEBSART, count=1, slave=self.slave,
+                )
+            if r is None or r.isError():
+                return False, f"read probe failed: {r}"
+            return True, None
+        except Exception as err:  # noqa: BLE001
+            return False, f"{type(err).__name__}: {err}"
+        finally:
+            if client is not None:
+                try:
+                    client.close()
+                except Exception:  # noqa: BLE001
+                    pass
 
     async def async_close(self):
         if self._client:
