@@ -11,7 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ents = []
     for sw in SWITCH_DEFINITIONS:
         ents.append(ProxonSwitch(hub.coordinator, hub, entry, sw["register"], sw["uid"], sw["name"], f"proxon_{sw['uid']}", sw.get("icon"), "Proxon FWT", "FWT 2.0"))
-    for room in ROOM_DEFINITIONS:
+    for room in hub.rooms:
         ents.append(ProxonSwitch(hub.coordinator, hub, entry, room["heiz_reg"], f"heiz_{room['key']}", f"Heizelement {room['name']}", f"proxon_heiz_{room['key']}", "mdi:radiator", "Proxon FWT", "FWT 2.0"))
     if entry.data.get(CONF_T300_ENABLED, False):
         for sw in T300_SWITCH_DEFINITIONS:

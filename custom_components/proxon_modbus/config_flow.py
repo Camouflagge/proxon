@@ -22,6 +22,29 @@ from .hub import ProxonModbusHub
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _discover_rooms(hass, data: dict) -> list[dict]:
+    """Try to read room names from the device. Returns [] on any failure."""
+    hub = ProxonModbusHub(
+        hass=hass,
+        conn_type=data.get(CONF_TYPE, TYPE_TCP),
+        slave=int(data.get(CONF_SLAVE, DEFAULT_SLAVE)),
+        t300_enabled=False,
+        t300_slave=int(data.get(CONF_T300_SLAVE, DEFAULT_T300_SLAVE)),
+        scan_interval=10,
+        host=data.get(CONF_HOST),
+        port=int(data[CONF_PORT]) if CONF_PORT in data else None,
+        device=data.get(CONF_DEVICE),
+        baudrate=int(data[CONF_BAUDRATE]) if CONF_BAUDRATE in data else None,
+        bytesize=int(data[CONF_BYTESIZE]) if CONF_BYTESIZE in data else None,
+        method=data.get(CONF_METHOD),
+        parity=data.get(CONF_PARITY),
+        stopbits=int(data[CONF_STOPBITS]) if CONF_STOPBITS in data else None,
+    )
+    rooms = await hub.async_discover_rooms()
+    _LOGGER.debug("Discovered %d room(s): %s", len(rooms), [r["name"] for r in rooms])
+    return rooms
+
+
 async def _probe(hass, data: dict) -> str | None:
     """Try to actually talk to the configured device.
 
@@ -195,6 +218,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 return self.async_create_entry(title=_title_for(data), data=data)
 
         return self.async_show_form(
@@ -213,6 +237,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 return self.async_create_entry(title=_title_for(data), data=data)
 
         return self.async_show_form(
@@ -231,6 +256,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 return self.async_create_entry(title=_title_for(data), data=data)
 
         return self.async_show_form(
@@ -270,6 +296,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 await self.async_set_unique_id(_unique_id_for(data))
                 self._abort_if_unique_id_mismatch(reason="already_configured")
                 return self.async_update_reload_and_abort(
@@ -299,6 +326,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 await self.async_set_unique_id(_unique_id_for(data))
                 self._abort_if_unique_id_mismatch(reason="already_configured")
                 return self.async_update_reload_and_abort(
@@ -326,6 +354,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if err:
                 errors["base"] = err
             else:
+                data["rooms"] = await _discover_rooms(self.hass, data)
                 await self.async_set_unique_id(_unique_id_for(data))
                 self._abort_if_unique_id_mismatch(reason="already_configured")
                 return self.async_update_reload_and_abort(

@@ -1,6 +1,6 @@
 """Modbus coordinator for Proxon FWT."""
 from __future__ import annotations
-import asyncio, logging, struct
+import asyncio, logging, re, struct
 from datetime import timedelta
 from typing import Any
 
@@ -70,6 +70,7 @@ class ProxonModbusHub:
         self.t300_enabled = t300_enabled
         self.t300_slave = t300_slave
         self.scan_interval = scan_interval
+        self._discovered_rooms: list[dict] = []
         self._client = None
         self._lock = asyncio.Lock()
         self.data: dict[str, Any] = {}
@@ -173,6 +174,78 @@ class ProxonModbusHub:
         if self._client:
             self._client.close()
 
+    @property
+    def rooms(self) -> list[dict]:
+        """Return room definitions with names from device discovery where available.
+
+        Falls back to the static ROOM_DEFINITIONS if no rooms were discovered.
+        Only the display name is overridden; register addresses stay unchanged so
+        entity unique IDs and data-dict keys remain stable.
+        """
+        if not self._discovered_rooms:
+            return list(ROOM_DEFINITIONS)
+        result = []
+        for i, discovered in enumerate(self._discovered_rooms):
+            if i < len(ROOM_DEFINITIONS):
+                room = dict(ROOM_DEFINITIONS[i])
+                room["name"] = discovered["name"]
+                result.append(room)
+        return result if result else list(ROOM_DEFINITIONS)
+
+    async def async_discover_rooms(self) -> list[dict]:
+        """Read room name slots from holding registers 620–690.
+
+        Each slot occupies 10 consecutive holding registers starting at
+        620 + (name_idx * 10). Each register holds two Latin-1 bytes.
+        Slot 0 is the HBDE (main panel), slots 1–7 are NBE room panels.
+
+        Returns a list of {name_idx, name} dicts for non-empty,
+        non-default slots, in order.
+        """
+        _DEFAULT = re.compile(r"^Raum\s*\d+$", re.IGNORECASE)
+        client = None
+        try:
+            client = self._build_client()
+            if not await client.connect():
+                return []
+            # Unlock extended register access (same as normal operation)
+            try:
+                await client.write_register(REG_ZUGRIFF, 55555, device_id=self.slave)
+                await asyncio.sleep(0.2)
+            except Exception:
+                pass
+
+            rooms: list[dict] = []
+            for name_idx in range(8):
+                name_addr = 620 + name_idx * 10
+                try:
+                    result = await client.read_holding_registers(
+                        name_addr, count=10, device_id=self.slave
+                    )
+                    if result.isError() or len(result.registers) < 10:
+                        continue
+                    raw_chars: list[str] = []
+                    for reg_val in result.registers:
+                        hi = (reg_val >> 8) & 0xFF
+                        lo = reg_val & 0xFF
+                        raw_chars.append(chr(hi) if hi else "\x00")
+                        raw_chars.append(chr(lo) if lo else "\x00")
+                    name = "".join(raw_chars).split("\x00")[0].strip()
+                    if not name or _DEFAULT.match(name):
+                        continue
+                    rooms.append({"name_idx": name_idx, "name": name})
+                except Exception:
+                    continue
+            return rooms
+        except Exception:
+            return []
+        finally:
+            if client is not None:
+                try:
+                    client.close()
+                except Exception:
+                    pass
+
     async def _ensure_connected(self):
         """Ensure the client is connected."""
         if not self._client or not self._client.connected:
@@ -242,7 +315,7 @@ class ProxonModbusHub:
                         )
 
             # Room temperatures, offsets, heizelemente
-            for room in ROOM_DEFINITIONS:
+            for room in self.rooms:
                 # Ist-Temperatur
                 regs = await self._read_reg(room["temp_reg"], self.slave, room["temp_input"])
                 if regs is not None:

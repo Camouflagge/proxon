@@ -62,6 +62,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             f"Error fetching initial data from Proxon: {err}"
         ) from err
 
+    # Restore discovered room names from entry data (set during config flow).
+    # Backward-compat: entries created before this feature have no "rooms" key
+    # and will fall back to the static ROOM_DEFINITIONS in hub.rooms.
+    hub._discovered_rooms = entry.data.get("rooms", [])
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS_LIST)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

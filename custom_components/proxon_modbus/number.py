@@ -14,7 +14,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ProxonNumber(hub.coordinator, hub, entry, REG_LUFTFEUCHTE_HOLDING, "feuchte_h", "Luftfeuchte Soll", "proxon_feuchte_h_nr", 0, 100, 1, "mdi:water-percent", "%", 1, "Proxon FWT", "FWT 2.0"),
     ]
     # Mitteltemperatur als Number-Entities (steuerbar per +/-)
-    for room in ROOM_DEFINITIONS:
+    for room in hub.rooms:
         if room.get("mitte_reg") is not None:
             ents.append(ProxonNumber(
                 hub.coordinator, hub, entry,

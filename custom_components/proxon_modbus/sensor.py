@@ -25,7 +25,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Betriebsart text
     ents.append(ProxonSensor(hub.coordinator, hub, entry, "betriebsart_text", "Betriebsart Text", "proxon_betriebsart_text", None, None, None, "mdi:cog-outline", "Proxon FWT", "FWT 2.0"))
     # Room temperatures + offsets + Mitteltemperaturen
-    for room in ROOM_DEFINITIONS:
+    for room in hub.rooms:
         ents.append(ProxonSensor(hub.coordinator, hub, entry, f"temp_{room['key']}", f"Temperatur {room['name']}", f"proxon_temp_{room['key']}", "°C", "temperature", "measurement", "mdi:home-thermometer", "Proxon FWT", "FWT 2.0"))
         if room["offset_reg"] is not None:
             ents.append(ProxonSensor(hub.coordinator, hub, entry, f"offset_{room['key']}", f"Offset {room['name']}", f"proxon_offset_{room['key']}", "°C", "temperature", None, "mdi:thermometer-plus", "Proxon FWT", "FWT 2.0"))
