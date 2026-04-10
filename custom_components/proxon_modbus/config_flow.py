@@ -11,16 +11,23 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_HOST): str,
-    vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-    vol.Required(CONF_SLAVE, default=DEFAULT_SLAVE): int,
-    vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-        int, vol.Range(min=5, max=300)
-    ),
-    vol.Optional(CONF_T300_ENABLED, default=True): bool,
-    vol.Optional(CONF_T300_SLAVE, default=DEFAULT_T300_SLAVE): int,
-})
+
+def _build_schema(defaults: dict | None = None) -> vol.Schema:
+    """Build the config/reconfigure schema, optionally pre-filled with defaults."""
+    d = defaults or {}
+    return vol.Schema({
+        vol.Required(CONF_HOST, default=d.get(CONF_HOST, vol.UNDEFINED)): str,
+        vol.Required(CONF_PORT, default=d.get(CONF_PORT, DEFAULT_PORT)): int,
+        vol.Required(CONF_SLAVE, default=d.get(CONF_SLAVE, DEFAULT_SLAVE)): int,
+        vol.Required(
+            CONF_SCAN_INTERVAL,
+            default=d.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        ): vol.All(int, vol.Range(min=1, max=60)),
+        vol.Optional(CONF_T300_ENABLED, default=d.get(CONF_T300_ENABLED, True)): bool,
+        vol.Optional(
+            CONF_T300_SLAVE, default=d.get(CONF_T300_SLAVE, DEFAULT_T300_SLAVE)
+        ): int,
+    })
 
 
 class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -29,13 +36,7 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step.
-        
-        No connection test here — the actual connection is tested
-        during async_setup_entry in __init__.py. If it fails there,
-        HA will show the integration as "setup_retry" with the error.
-        This is the standard pattern for most HA integrations.
-        """
+        """Initial setup step."""
         if user_input is not None:
             await self.async_set_unique_id(f"proxon_{user_input[CONF_HOST]}")
             self._abort_if_unique_id_configured()
@@ -47,5 +48,26 @@ class ProxonModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=STEP_USER_DATA_SCHEMA,
+            data_schema=_build_schema(),
+        )
+
+    async def async_step_reconfigure(self, user_input=None):
+        """Handle reconfiguration of an existing entry."""
+        entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            # Update unique_id if host changed
+            new_uid = f"proxon_{user_input[CONF_HOST]}"
+            await self.async_set_unique_id(new_uid)
+            self._abort_if_unique_id_mismatch(reason="already_configured")
+
+            return self.async_update_reload_and_abort(
+                entry,
+                data_updates=user_input,
+                title=f"Proxon FWT ({user_input[CONF_HOST]})",
+            )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_build_schema(dict(entry.data)),
         )

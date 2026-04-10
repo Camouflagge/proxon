@@ -8,7 +8,19 @@
           "host": "IP Address (Modbus Gateway)",
           "port": "Port",
           "slave": "Slave ID",
-          "scan_interval": "Scan Interval (seconds)",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
+          "t300_enabled": "T300 hot water tank installed",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Proxon FWT",
+        "description": "Update connection data and settings. The integration will be reloaded after saving.",
+        "data": {
+          "host": "IP Address (Modbus Gateway)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Scan Interval (seconds, 1-60)",
           "t300_enabled": "T300 hot water tank installed",
           "t300_slave": "T300 Slave ID"
         }
@@ -19,7 +31,8 @@
       "unknown": "Unknown error"
     },
     "abort": {
-      "already_configured": "Proxon FWT is already configured"
+      "already_configured": "Proxon FWT is already configured",
+      "reconfigure_successful": "Reconfiguration successful"
     }
   }
 }

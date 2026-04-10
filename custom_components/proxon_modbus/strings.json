@@ -8,7 +8,19 @@
           "host": "IP-Adresse (Modbus Gateway)",
           "port": "Port",
           "slave": "Slave ID",
-          "scan_interval": "Abfrageintervall (Sekunden)",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
+          "t300_enabled": "T300 Warmwasserspeicher vorhanden",
+          "t300_slave": "T300 Slave ID"
+        }
+      },
+      "reconfigure": {
+        "title": "Proxon FWT neu konfigurieren",
+        "description": "Passe die Verbindungsdaten und Einstellungen an. Die Integration wird nach dem Speichern neu geladen.",
+        "data": {
+          "host": "IP-Adresse (Modbus Gateway)",
+          "port": "Port",
+          "slave": "Slave ID",
+          "scan_interval": "Abfrageintervall (Sekunden, 1-60)",
           "t300_enabled": "T300 Warmwasserspeicher vorhanden",
           "t300_slave": "T300 Slave ID"
         }
@@ -19,18 +31,8 @@
       "unknown": "Unbekannter Fehler"
     },
     "abort": {
-      "already_configured": "Proxon FWT ist bereits konfiguriert"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Proxon FWT Optionen",
-        "data": {
-          "scan_interval": "Abfrageintervall (Sekunden)",
-          "rooms": "Räume konfigurieren"
-        }
-      }
+      "already_configured": "Proxon FWT ist bereits konfiguriert",
+      "reconfigure_successful": "Neukonfiguration erfolgreich"
     }
   }
 }

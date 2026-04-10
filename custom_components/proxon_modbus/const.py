@@ -5,7 +5,7 @@ DEFAULT_NAME = "Proxon FWT"
 DEFAULT_PORT = 502
 DEFAULT_SLAVE = 41
 DEFAULT_T300_SLAVE = 41  # T300 Register sind bei den meisten über FWT Slave 41 erreichbar
-DEFAULT_SCAN_INTERVAL = 30
+DEFAULT_SCAN_INTERVAL = 10
 
 CONF_SLAVE = "slave"
 CONF_T300_ENABLED = "t300_enabled"
