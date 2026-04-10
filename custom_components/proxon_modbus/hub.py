@@ -153,6 +153,11 @@ class ProxonModbusHub:
             if regs is not None:
                 data["zugriff"] = int(regs[0])
 
+            # Luftfeuchte Holding (für Number-Entity)
+            regs = await self._read_reg(REG_LUFTFEUCHTE_HOLDING, self.slave, "holding")
+            if regs is not None:
+                data["feuchte_h"] = int(regs[0])
+
             # Global switches
             for sw in SWITCH_DEFINITIONS:
                 regs = await self._read_reg(sw["register"], self.slave, "holding")
