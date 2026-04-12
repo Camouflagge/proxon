@@ -20,8 +20,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 hub.coordinator, hub, entry,
                 room["mitte_reg"], f"mitte_{room['key']}",
                 f"Mitteltemperatur {room['name']}", f"proxon_mitte_{room['key']}_nr",
-                -30, 50, 0.1, "mdi:thermometer-lines", "°C",
-                room.get("mitte_scale", 0.1),
+                NBE_MITTEL_MIN, NBE_MITTEL_MAX, 1, "mdi:thermometer-lines", "°C",
+                room.get("mitte_scale", 1),
                 "Proxon FWT", "FWT 2.0",
                 mode=NumberMode.BOX,
             ))

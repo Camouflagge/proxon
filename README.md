@@ -34,29 +34,36 @@ Diese Integration wurde mit folgender Panel-Konfiguration entwickelt und geteste
 
 ## Temperatursteuerung
 
-Die Proxon arbeitet mit einem zentralen Soll-Wert (Wohnzimmer/ZBP) und einem Offset (-3 bis +3) für jedes Nebenpanel:
+Die Proxon arbeitet mit einem zentralen Soll-Wert (Wohnzimmer/ZBP) und einer **Regeltemperatur** pro Nebenpanel:
 
-| Raum | Steuerung | Register | Bereich |
-|------|-----------|----------|---------|
-| Wohnzimmer (Hauptpanel) | Direkte Soll-Temp | 40071 | 10-30°C |
-| Kind Vorne (Haupt-NB) | Offset | 40214 | -3 bis +3 |
-| Diele (NB1) | Offset | 40215 | -3 bis +3 |
-| Kind Hinten (NB3) | Offset | 40217 | -3 bis +3 |
-| Schlafzimmer (NB4) | Offset | 40218 | -3 bis +3 |
+```
+Regeltemperatur = Mitteltemperatur + Offsettemperatur
+```
 
-Die Nebenpanels arbeiten mit **fester Basis 20°C**:
+*(Quelle: Proxon PTC Software-Beschreibung, ParaID 305–349)*
 
-| Offset | Temperatur |
-|--------|------------|
-| -3 | 17°C |
-| -2 | 18°C |
-| -1 | 19°C |
-| 0 | 20°C |
-| +1 | 21°C |
-| +2 | 22°C |
-| +3 | 23°C |
+### Offset-Register (Feinjustierung ±3°C)
 
-In der Integration stellst du einfach die gewünschte Temperatur ein — der Offset wird automatisch berechnet.
+| Raum | Register | Bereich |
+|------|----------|---------|
+| Wohnzimmer (Hauptpanel) | 40071 (direkte Soll-Temp) | 10–30°C |
+| Kind Vorne (Haupt-NB) | 40214 | -3 bis +3 |
+| Diele (NB1) | 40215 | -3 bis +3 |
+| Kind Hinten (NB3) | 40217 | -3 bis +3 |
+| Schlafzimmer (NB4) | 40218 | -3 bis +3 |
+
+### Mitteltemperatur-Register (konfigurierbare Basis pro Raum)
+
+| Raum | Register | Bereich | Werkseinstellung |
+|------|----------|---------|-----------------|
+| Kind Vorne (Haupt-NB) | 40234 | 0–50°C | 20°C |
+| Diele (NB1) | 40235 | 0–50°C | 20°C |
+| Kind Hinten (NB3) | 40237 | 0–50°C | 20°C |
+| Schlafzimmer (NB4) | 40238 | 0–50°C | 20°C |
+
+Die Mitteltemperatur ist **pro Raum individuell einstellbar** — direkt am jeweiligen Panel oder über die **Number-Entity** in Home Assistant. Werkseitig sind 20°C voreingestellt, dieser Wert kann aber je nach Raum und Nutzung abweichen.
+
+In der Integration stellst du einfach die gewünschte Temperatur ein — der Offset wird automatisch aus `Zieltemperatur − Mitteltemperatur` berechnet. Der einstellbare Bereich im Climate-Widget passt sich dynamisch an die aktuelle Mitteltemperatur an (Mitteltemperatur ± 3°C).
 
 ## Schreibzugriff aktivieren (Zugriffsmodus)
 

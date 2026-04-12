@@ -3,10 +3,11 @@
 Proxon Temperatursteuerung:
 - Wohnzimmer (ZBP): Hat eine direkte Soll-Temperatur (Register 70/40071)
   → Bereich 10-30°C, direkt schreibbar (scale 0.01)
-- Nebenpanels (NB): Haben einen Offset von -3 bis +3 (Register 213-218)
-  → Soll = 20 + Offset (feste Basis 20°C)
-  → -3=17°C, -2=18°C, -1=19°C, 0=20°C, +1=21°C, +2=22°C, +3=23°C
-  → Beim Setzen: offset = gewünschte_temp - 20
+- Nebenpanels (NB): Haben einen Offset von -3 bis +3 (Register 213+, scale 1)
+  und eine konfigurierbare Mitteltemperatur (Register 233+, scale 1, 0–50°C)
+  → Regeltemperatur = Mitteltemperatur + Offsettemperatur
+  → Beim Setzen: offset = round(gewünschte_temp - mitteltemperatur)
+  (Proxon PTC Software-Beschreibung, ParaID 305–324 / 330–349)
 """
 from __future__ import annotations
 import logging
@@ -49,14 +50,10 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
         self._attr_unique_id = f"proxon_climate_{room['key']}"
         self._attr_icon = "mdi:thermostat"
 
-        # Wohnzimmer: direkte Soll-Temp (10-30)
-        # Nebenpanels: feste Basis 20°C ± 3 → 17-23°C
         if room["soll_reg"] is not None:
             self._attr_min_temp = room["soll_min"]
             self._attr_max_temp = room["soll_max"]
-        else:
-            self._attr_min_temp = 17
-            self._attr_max_temp = 23
+        # NBE: min/max werden dynamisch als Properties berechnet (Mitteltemp ± 3)
 
     @property
     def device_info(self):
@@ -64,6 +61,24 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
             identifiers={(DOMAIN, f"{self._entry.entry_id}_Proxon FWT")},
             name="Proxon FWT", manufacturer="Zimmermann / Proxon", model="FWT 2.0"
         )
+
+    def _mittel(self):
+        """Mitteltemperatur des Raums aus den Coordinator-Daten."""
+        if not self.coordinator.data:
+            return NBE_MITTEL_DEFAULT
+        return self.coordinator.data.get(f"mitte_{self._room['key']}", NBE_MITTEL_DEFAULT)
+
+    @property
+    def min_temp(self):
+        if self._room["soll_reg"] is not None:
+            return self._room["soll_min"]
+        return self._mittel() + NBE_OFFSET_MIN
+
+    @property
+    def max_temp(self):
+        if self._room["soll_reg"] is not None:
+            return self._room["soll_max"]
+        return self._mittel() + NBE_OFFSET_MAX
 
     @property
     def current_temperature(self):
@@ -78,10 +93,10 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
             # Wohnzimmer: direkte Soll-Temperatur
             return self.coordinator.data.get("soll_wz")
         else:
-            # Nebenpanel: Soll = 20 + Offset (feste Basis)
+            # Nebenpanel: Regeltemperatur = Mitteltemperatur + Offset
             offset = self.coordinator.data.get(f"offset_{r['key']}", 0)
             if offset is not None:
-                return 20 + offset
+                return self._mittel() + offset
         return None
 
     @property
@@ -114,10 +129,9 @@ class ProxonClimate(CoordinatorEntity, ClimateEntity):
                 _LOGGER.info("Set %s Soll to %.1f°C (raw: %d)", r["name"], temp, reg_val)
                 await self.coordinator.async_request_refresh()
         else:
-            # Nebenpanel: Offset = Temperatur - 20 (feste Basis)
-            new_offset = int(temp - 20)
-            # Clamp to -3..+3
-            new_offset = max(-3, min(3, new_offset))
+            # Nebenpanel: Offset = Temperatur - Mitteltemperatur
+            new_offset = round(temp - self._mittel())
+            new_offset = max(NBE_OFFSET_MIN, min(NBE_OFFSET_MAX, new_offset))
             ok = await self._hub.async_write_register(r["offset_reg"], new_offset)
             if ok:
                 _LOGGER.info("Set %s offset to %d (target: %.1f°C)", r["name"], new_offset, temp)

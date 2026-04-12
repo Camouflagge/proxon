@@ -78,10 +78,6 @@ REG_SOLL_TEMP_WOHNZIMMER = 70   # 40071 (scale 1, raw °C)
 REG_LUFTFEUCHTE_HOLDING = 118   # 40119
 REG_INTENSIVLUEFTUNG_REST = 133 # 40134
 REG_HEIZELEMENT_WOHNZIMMER = 187# 40188
-REG_MITTETEMPERATUR_KIND_VORNE = 190  # 40191
-REG_MITTETEMPERATUR_DIELE = 191      # 40192 (int16, scale 0.1)
-REG_MITTETEMPERATUR_KIND_HINTEN = 193 # 40194
-REG_MITTETEMPERATUR_SCHLAFZIMMER = 194 # 40195
 REG_OFFSET_KIND_VORNE = 213     # 40214 (int16, scale 1 → -3..+3)
 REG_OFFSET_DIELE = 214          # 40215
 REG_OFFSET_KIND_HINTEN = 216    # 40217
@@ -92,7 +88,6 @@ REG_HEIZELEMENT_KIND_HINTEN = 256# 40257
 REG_HEIZELEMENT_SCHLAFEN = 257  # 40258
 REG_HEIZELEMENT_GLOBAL = 325    # 40326
 REG_ZUGRIFF = 438               # 40439
-REG_HBDE_MITTETEMPERATUR = 458  # 40459
 REG_BETRIEBSSTUNDEN_FWT = 467   # 40468
 REG_FILTER_STANDZEIT = 468      # 40469
 REG_FILTER_NUTZZEIT = 469       # 40470
@@ -104,6 +99,12 @@ REG_T300_ZUSTAND = 2002         # 42003
 REG_T300_HEIZSTAB_SOLL = 2003   # 42004
 REG_T300_PV_VORRANG = 2010      # 42011
 REG_T300_LEGIONELLEN = 2025     # 42026
+
+# Register-Basis-Adressen für slot-abhängige NBE-Register (slot ≥ 1)
+REG_NBE_TEMP_BASE    = 587   # temp_reg   = REG_NBE_TEMP_BASE + slot * 3  (Input, scale 0.1)
+REG_NBE_MITTE_BASE   = 232   # mitte_reg  = REG_NBE_MITTE_BASE + slot     (Holding, int16, scale 1, 0..50°C)
+REG_NBE_OFFSET_BASE  = 212   # offset_reg = REG_NBE_OFFSET_BASE + slot    (Holding, int16, scale 1, -3..+3)
+REG_NBE_HEIZ_BASE    = 252   # heiz_reg   = REG_NBE_HEIZ_BASE + slot      (Holding, uint16, 0/1)
 
 # ──── Panel Auto-Discovery ────
 # Namens-Register: ab 4x0621 (pymodbus offset 620), 10 Register pro Slot,
@@ -180,9 +181,12 @@ def build_room_def(slot: int, name: str) -> dict:
 
         slot ≥ 1 (HNBE and NBx):
             temp_reg   = 587 + slot * 3   (input register, int16, scale 0.1)
-            mitte_reg  = 189 + slot       (holding, int16, scale 0.1)
+            mitte_reg  = 232 + slot       (holding, int16, scale 1, °C integer, 0..50)
             offset_reg = 212 + slot       (holding, int16, scale 1, -3..+3)
             heiz_reg   = 252 + slot       (holding, uint16, 0/1)
+
+        Regeltemperatur (NBE) = Mitteltemperatur + Offsettemperatur
+        (Proxon PTC Software-Beschreibung, ParaID 330–349 + 305–324)
 
     Slot 0 (ZBP = Wohnzimmer / Hauptpanel) is special: it has a direct
     target-temperature register (40071) with 10-30°C range instead of an
@@ -207,9 +211,9 @@ def build_room_def(slot: int, name: str) -> dict:
             "soll_min": 10,
             "soll_max": 30,
             "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
-            "mitte_reg": REG_HBDE_MITTETEMPERATUR,
-            "mitte_scale": 0.1,
-            "mitte_dtype": "int16",
+            "mitte_reg": None,   # ZBP hat direkten Sollwert, keine Mitteltemperatur
+            "mitte_scale": None,
+            "mitte_dtype": None,
         }
 
     # HNBE (slot 1) and NBx (slot ≥ 2) share the same formula-derived layout.
@@ -218,18 +222,18 @@ def build_room_def(slot: int, name: str) -> dict:
         "key": key,
         "name": name,
         "panel_type": panel_type,
-        "temp_reg": 587 + slot * 3,
+        "temp_reg": REG_NBE_TEMP_BASE + slot * 3,
         "temp_input": "input",
         "temp_scale": 0.1,
         "temp_dtype": "int16",
-        "offset_reg": 212 + slot,
+        "offset_reg": REG_NBE_OFFSET_BASE + slot,
         "soll_reg": None,
         "soll_scale": None,
         "soll_min": None,
         "soll_max": None,
-        "heiz_reg": 252 + slot,
-        "mitte_reg": 189 + slot,
-        "mitte_scale": 0.1,
+        "heiz_reg": REG_NBE_HEIZ_BASE + slot,
+        "mitte_reg": REG_NBE_MITTE_BASE + slot,
+        "mitte_scale": 1,
         "mitte_dtype": "int16",
     }
 
@@ -289,6 +293,18 @@ T300_SWITCH_DEFINITIONS = [
     {"register": REG_T300_PV_VORRANG, "name": "T300 PV-Vorrang", "uid": "t300_pv", "icon": "mdi:solar-power-variant"},
     {"register": REG_T300_LEGIONELLEN, "name": "T300 Legionellenfunktion", "uid": "t300_legio", "icon": "mdi:bacteria"},
 ]
+
+# ──── NBE-Regelung ────
+# Mitteltemperatur: Basistemperatur pro Raum, konfigurierbar am NBE-Panel
+# (Proxon PTC Software-Beschreibung, ParaID 330–349). Werkseinstellung 20°C.
+NBE_MITTEL_MIN = 0      # °C
+NBE_MITTEL_MAX = 50     # °C
+NBE_MITTEL_DEFAULT = 20 # Werkseinstellung / Fallback
+
+# Offsettemperatur: Feinjustierung des Nutzers am NBE-Panel (-3..+3 °C)
+# (Proxon PTC Software-Beschreibung, ParaID 305–324)
+NBE_OFFSET_MIN = -3     # °C
+NBE_OFFSET_MAX = 3      # °C
 
 BETRIEBSART_MAP = {0: "Aus", 1: "Sommer", 2: "Winter", 3: "Comfort"}
 BETRIEBSART_REVERSE_MAP = {v: k for k, v in BETRIEBSART_MAP.items()}
