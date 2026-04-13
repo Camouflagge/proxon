@@ -33,6 +33,40 @@ _LOGGER = logging.getLogger(__name__)
 READ_DELAY = 0.05  # 50ms between reads
 
 
+# ── Bus-Rauschen unterdrücken (Issue #4, @Oponn4) ──────────────────────
+# Auf RS485-Bussen empfängt pymodbus regelmäßig PDU-Frames von anderen
+# Geräten, die keiner offenen Anfrage entsprechen. pymodbus loggt diese
+# als ERROR ("received pdu without a corresponding request, IGNORING")
+# und als WARNING ("Repeating"). Die Frames werden korrekt verworfen,
+# erzeugen aber massiven Log-Spam (bis zu ~170 Einträge in 12h).
+# Dieser Filter stuft sie auf DEBUG herunter.
+class _PymodbusBusNoiseFilter(logging.Filter):
+    """Demote pymodbus bus-noise errors to DEBUG level."""
+
+    _PATTERNS = (
+        "received pdu without a corresponding request",
+        "Repeating",
+    )
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        if record.levelno >= logging.WARNING:
+            msg = record.getMessage()
+            for pattern in self._PATTERNS:
+                if pattern in msg:
+                    record.levelno = logging.DEBUG
+                    record.levelname = "DEBUG"
+                    break
+        return True  # always pass through – never suppress, just re-level
+
+
+# Apply the filter exactly once at import time. If the integration is
+# reloaded, the module is re-imported but the logger keeps existing
+# filters, so we guard against duplicates.
+_pymodbus_logger = logging.getLogger("pymodbus")
+if not any(isinstance(f, _PymodbusBusNoiseFilter) for f in _pymodbus_logger.filters):
+    _pymodbus_logger.addFilter(_PymodbusBusNoiseFilter())
+
+
 class ProxonModbusHub:
     def __init__(
         self,
