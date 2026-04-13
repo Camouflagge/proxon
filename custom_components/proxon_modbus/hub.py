@@ -31,6 +31,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # Delay between modbus reads to avoid bus collisions (ms)
 READ_DELAY = 0.05  # 50ms between reads
+# Retries for name-register reads during discovery
+DISCOVERY_RETRIES = 3
+DISCOVERY_RETRY_DELAY = 0.5  # 500ms between retries
 
 
 # ── Bus-Rauschen unterdrücken (Issue #4, @Oponn4) ──────────────────────
@@ -283,22 +286,32 @@ class ProxonModbusHub:
             else:
                 for slot in range(PANEL_SLOT_COUNT):
                     addr = NAME_REG_BASE + slot * NAME_REG_STRIDE
-                    try:
-                        r = await self._client.read_holding_registers(
-                            addr, count=NAME_REG_COUNT, device_id=self.slave,
-                        )
-                    except Exception as err:  # noqa: BLE001
-                        _LOGGER.debug(
-                            "Proxon: name read slot %d (reg %d) raised %s",
-                            slot, addr, err,
-                        )
-                        await asyncio.sleep(READ_DELAY)
-                        continue
+                    r = None
+                    for attempt in range(1, DISCOVERY_RETRIES + 1):
+                        try:
+                            r = await self._client.read_holding_registers(
+                                addr, count=NAME_REG_COUNT, device_id=self.slave,
+                            )
+                        except Exception as err:  # noqa: BLE001
+                            _LOGGER.debug(
+                                "Proxon: name read slot %d (reg %d) attempt %d/%d raised %s",
+                                slot, addr, attempt, DISCOVERY_RETRIES, err,
+                            )
+                            r = None
+                        if r is not None and not r.isError() and len(r.registers) >= NAME_REG_COUNT:
+                            break
+                        if attempt < DISCOVERY_RETRIES:
+                            _LOGGER.debug(
+                                "Proxon: slot %d read failed (attempt %d/%d), retrying…",
+                                slot, attempt, DISCOVERY_RETRIES,
+                            )
+                            await asyncio.sleep(DISCOVERY_RETRY_DELAY)
+                        else:
+                            _LOGGER.warning(
+                                "Proxon: slot %d (reg %d) unreadable after %d attempts – skipping",
+                                slot, addr, DISCOVERY_RETRIES,
+                            )
                     if r is None or r.isError() or len(r.registers) < NAME_REG_COUNT:
-                        _LOGGER.debug(
-                            "Proxon: name read slot %d (reg %d) failed: %s",
-                            slot, addr, r,
-                        )
                         await asyncio.sleep(READ_DELAY)
                         continue
                     # Decode 2 Latin-1 bytes per register, cut at first NUL.
