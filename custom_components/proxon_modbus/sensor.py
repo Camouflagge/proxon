@@ -31,6 +31,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             ents.append(ProxonSensor(hub.coordinator, hub, entry, f"offset_{room['key']}", f"Offset {room['name']}", f"proxon_offset_{room['key']}", "°C", "temperature", None, "mdi:thermometer-plus", "Proxon FWT", "FWT 2.0"))
         if room.get("mitte_reg") is not None:
             ents.append(ProxonSensor(hub.coordinator, hub, entry, f"mitte_{room['key']}", f"Mitteltemperatur {room['name']}", f"proxon_mitte_{room['key']}", "°C", "temperature", "measurement", "mdi:thermometer-lines", "Proxon FWT", "FWT 2.0"))
+        if room.get("ist_offset_reg") is not None:
+            ents.append(ProxonSensor(hub.coordinator, hub, entry, f"ist_offset_{room['key']}", f"Ist-Offset {room['name']}", f"proxon_ist_offset_{room['key']}", "°C", "temperature", None, "mdi:thermometer-chevron-up", "Proxon FWT", "FWT 2.0"))
     # Filter days
     ents.append(ProxonFilterDays(hub.coordinator, hub, entry, "filter_nutz", "Filter Laufzeit (Tage)", "proxon_filter_laufzeit_d", "laufzeit"))
     ents.append(ProxonFilterDays(hub.coordinator, hub, entry, "filter_nutz", "Filter Restzeit (Tage)", "proxon_filter_restzeit_d", "restzeit"))

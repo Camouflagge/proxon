@@ -425,13 +425,21 @@ class ProxonModbusHub:
                     regs = await self._read_reg(room["offset_reg"], self.slave, "holding")
                     if regs is not None:
                         data[f"offset_{room['key']}"] = self._decode(regs[0], "int16", 1)
-                # Mitteltemperatur
+                # Mitteltemperatur (echte, 232+slot, scale 1)
                 if room.get("mitte_reg") is not None:
                     regs = await self._read_reg(room["mitte_reg"], self.slave, "holding")
                     if regs is not None:
                         data[f"mitte_{room['key']}"] = self._decode(
-                            regs[0], room.get("mitte_dtype", "int16"),
-                            room.get("mitte_scale", 0.1)
+                            regs[0], room.get("mitte_dtype", "uint16"),
+                            room.get("mitte_scale", 1)
+                        )
+                # Ist-Offset / Kalibrierung (189+slot, scale 0.1)
+                if room.get("ist_offset_reg") is not None:
+                    regs = await self._read_reg(room["ist_offset_reg"], self.slave, "holding")
+                    if regs is not None:
+                        data[f"ist_offset_{room['key']}"] = self._decode(
+                            regs[0], "int16",
+                            room.get("ist_offset_scale", 0.1)
                         )
                 # Heizelement
                 regs = await self._read_reg(room["heiz_reg"], self.slave, "holding")

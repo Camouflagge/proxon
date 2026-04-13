@@ -13,15 +13,27 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ProxonNumber(hub.coordinator, hub, entry, REG_INTENSIVLUEFTUNG_REST, "intensiv_rest", "Intensivlüftung", "proxon_intensiv_nr", 0, 1440, 1, "mdi:fan-plus", "min", 1, "Proxon FWT", "FWT 2.0", mode=NumberMode.BOX),
         ProxonNumber(hub.coordinator, hub, entry, REG_LUFTFEUCHTE_HOLDING, "feuchte_h", "Luftfeuchte Soll", "proxon_feuchte_h_nr", 0, 100, 1, "mdi:water-percent", "%", 1, "Proxon FWT", "FWT 2.0"),
     ]
-    # Mitteltemperatur als Number-Entities (steuerbar per +/-)
+    # Mitteltemperatur als Number-Entities (echte Mitteltemp. aus Reg. 232+slot)
     for room in hub.rooms:
         if room.get("mitte_reg") is not None:
             ents.append(ProxonNumber(
                 hub.coordinator, hub, entry,
                 room["mitte_reg"], f"mitte_{room['key']}",
                 f"Mitteltemperatur {room['name']}", f"proxon_mitte_{room['key']}_nr",
-                -30, 50, 0.1, "mdi:thermometer-lines", "°C",
-                room.get("mitte_scale", 0.1),
+                0, 50, 1, "mdi:thermometer-lines", "°C",
+                room.get("mitte_scale", 1),
+                "Proxon FWT", "FWT 2.0",
+                mode=NumberMode.BOX,
+            ))
+    # Ist-Offset als Number-Entities (Kalibrierung der Ist-Temperatur-Anzeige)
+    for room in hub.rooms:
+        if room.get("ist_offset_reg") is not None:
+            ents.append(ProxonNumber(
+                hub.coordinator, hub, entry,
+                room["ist_offset_reg"], f"ist_offset_{room['key']}",
+                f"Ist-Offset {room['name']}", f"proxon_ist_offset_{room['key']}_nr",
+                -10, 10, 0.1, "mdi:thermometer-chevron-up", "°C",
+                room.get("ist_offset_scale", 0.1),
                 "Proxon FWT", "FWT 2.0",
                 mode=NumberMode.BOX,
             ))

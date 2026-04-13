@@ -174,19 +174,28 @@ def slot_name_reg(slot: int) -> int:
 def build_room_def(slot: int, name: str) -> dict:
     """Construct a room-definition dict for a given slot.
 
-    Register addresses are derived algebraically from the slot index, using
-    formulas verified against the previously hard-coded definitions for
-    slots 1..5 (HNBE, NB1, NB3, NB4) in v1.8.x:
+    Register addresses are derived algebraically from the slot index.
+    Formulas verified via Symcon/Proxon official module AND live Modbus
+    reads against a real FWT 2.0. See also PR #5 (@Oponn4).
 
         slot ≥ 1 (HNBE and NBx):
-            temp_reg   = 587 + slot * 3   (input register, int16, scale 0.1)
-            mitte_reg  = 189 + slot       (holding, int16, scale 0.1)
-            offset_reg = 212 + slot       (holding, int16, scale 1, -3..+3)
-            heiz_reg   = 252 + slot       (holding, uint16, 0/1)
+            temp_reg       = 587 + slot * 3  (input, int16, scale 0.1)
+            mitte_reg      = 232 + slot      (holding, uint16, scale 1, °C)
+            offset_reg     = 212 + slot      (holding, int16, scale 1, -3..+3)
+            heiz_reg       = 252 + slot      (holding, uint16, 0/1)
+            ist_offset_reg = 189 + slot      (holding, int16, scale 0.1)
+
+    Middle temperature (mitte_reg): The base temperature used by the
+    heating system. Target = Mitte + Offset. Default is 20°C.
+    Confirmed at registers 4x0234–4x0240 (Symcon: 233+X, our: 232+slot).
+
+    Ist-Offset (ist_offset_reg): Calibration correction for the displayed
+    current temperature on the panel. E.g. -2.4 means the panel subtracts
+    2.4°C from the raw sensor reading. Located at 4x0191–4x0196
+    (previously incorrectly labelled as "Mitteltemperatur").
 
     Slot 0 (ZBP = Wohnzimmer / Hauptpanel) is special: it has a direct
-    target-temperature register (40071) with 10-30°C range instead of an
-    offset, and uses the dedicated Wohnzimmer registers.
+    target-temperature register (40071) and no mitte/offset scheme.
     """
     key = slot_key(slot)
     panel_type = slot_panel_type(slot)
@@ -207,9 +216,11 @@ def build_room_def(slot: int, name: str) -> dict:
             "soll_min": 10,
             "soll_max": 30,
             "heiz_reg": REG_HEIZELEMENT_WOHNZIMMER,
-            "mitte_reg": REG_HBDE_MITTETEMPERATUR,
-            "mitte_scale": 0.1,
-            "mitte_dtype": "int16",
+            "mitte_reg": None,              # ZBP hat direkte Soll-Temp, kein Mitte+Offset
+            "mitte_scale": None,
+            "mitte_dtype": None,
+            "ist_offset_reg": REG_HBDE_MITTETEMPERATUR,  # 458 = ZBP Ist-Kalibrierung
+            "ist_offset_scale": 0.1,
         }
 
     # HNBE (slot 1) and NBx (slot ≥ 2) share the same formula-derived layout.
@@ -228,9 +239,11 @@ def build_room_def(slot: int, name: str) -> dict:
         "soll_min": None,
         "soll_max": None,
         "heiz_reg": 252 + slot,
-        "mitte_reg": 189 + slot,
-        "mitte_scale": 0.1,
-        "mitte_dtype": "int16",
+        "mitte_reg": 232 + slot,            # echte Mitteltemperatur (Symcon: 233+X)
+        "mitte_scale": 1,                   # scale 1, uint16, Werte ~20°C
+        "mitte_dtype": "uint16",
+        "ist_offset_reg": 189 + slot,       # Ist-Kalibrierung (scale 0.1, int16)
+        "ist_offset_scale": 0.1,
     }
 
 
