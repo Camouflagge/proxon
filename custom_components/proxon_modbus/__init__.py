@@ -83,25 +83,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         discovered = []
 
-    # Only persist the new discovery result if it is at least as complete as
-    # the cached list. A partial result (fewer rooms than before) means some
-    # reads failed – in that case we keep the cache so no room is silently
-    # lost. A WARNING is logged so the user knows the result was discarded.
     if discovered and discovered != cached_rooms:
-        if len(discovered) < len(cached_rooms):
-            _LOGGER.warning(
-                "Proxon: discovery returned %d panel(s) but cache has %d – "
-                "keeping cached rooms to avoid data loss (partial read?)",
-                len(discovered), len(cached_rooms),
-            )
-        else:
-            _LOGGER.info(
-                "Proxon: persisting %d discovered panels to config entry",
-                len(discovered),
-            )
-            hass.config_entries.async_update_entry(
-                entry, data={**entry.data, "rooms": discovered},
-            )
+        _LOGGER.info(
+            "Proxon: persisting %d discovered panels to config entry",
+            len(discovered),
+        )
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, "rooms": discovered},
+        )
 
     try:
         await hub.coordinator.async_config_entry_first_refresh()
