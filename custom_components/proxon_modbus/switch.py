@@ -13,6 +13,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ents.append(ProxonSwitch(hub.coordinator, hub, entry, sw["register"], sw["uid"], sw["name"], f"proxon_{sw['uid']}", sw.get("icon"), "Proxon FWT", "FWT 2.0"))
     for room in hub.rooms:
         ents.append(ProxonSwitch(hub.coordinator, hub, entry, room["heiz_reg"], f"heiz_{room['key']}", f"Heizelement {room['name']}", f"proxon_heiz_{room['key']}", "mdi:radiator", "Proxon FWT", "FWT 2.0"))
+        if room.get("taste_sperren_reg") is not None:
+            ents.append(ProxonSwitch(hub.coordinator, hub, entry, room["taste_sperren_reg"], f"taste_sperren_{room['key']}", f"Taste sperren {room['name']}", f"proxon_taste_sperren_{room['key']}", "mdi:lock", "Proxon FWT", "FWT 2.0"))
     if entry.data.get(CONF_T300_ENABLED, False):
         for sw in T300_SWITCH_DEFINITIONS:
             ents.append(ProxonSwitch(hub.coordinator, hub, entry, sw["register"], sw["uid"], sw["name"], f"proxon_{sw['uid']}", sw.get("icon"), "Proxon T300", "T300", hub.t300_slave))

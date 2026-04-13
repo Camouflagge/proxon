@@ -61,6 +61,6 @@ class ProxonNumber(CoordinatorEntity, NumberEntity):
     async def async_set_native_value(self, value):
         rv = round(value / self._scale) if self._scale != 1 else int(value)
         if await self._hub.async_write_register(self._reg, rv, self._slave or self._hub.slave):
-            self.coordinator.data[self._data_key] = value
+            self.coordinator.data[self._data_key] = int(value) if self._scale == 1 else value
             self.async_write_ha_state()
             await self.coordinator.async_request_refresh()

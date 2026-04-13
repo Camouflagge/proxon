@@ -179,11 +179,12 @@ def build_room_def(slot: int, name: str) -> dict:
     reads against a real FWT 2.0. See also PR #5 (@Oponn4).
 
         slot ≥ 1 (HNBE and NBx):
-            temp_reg       = 587 + slot * 3  (input, int16, scale 0.1)
-            mitte_reg      = 232 + slot      (holding, uint16, scale 1, °C)
-            offset_reg     = 212 + slot      (holding, int16, scale 1, -3..+3)
-            heiz_reg       = 252 + slot      (holding, uint16, 0/1)
-            ist_offset_reg = 189 + slot      (holding, int16, scale 0.1)
+            temp_reg           = 587 + slot * 3  (input, int16, scale 0.1)
+            mitte_reg          = 232 + slot      (holding, uint16, scale 1, °C)
+            offset_reg         = 212 + slot      (holding, int16, scale 1, -3..+3)
+            heiz_reg           = 252 + slot      (holding, uint16, 0/1)
+            ist_offset_reg     = 189 + slot      (holding, int16, scale 0.1)
+            taste_sperren_reg  = 272 + slot      (holding, uint16, 0/1)
 
     Middle temperature (mitte_reg): The base temperature used by the
     heating system. Target = Mitte + Offset. Default is 20°C.
@@ -221,6 +222,7 @@ def build_room_def(slot: int, name: str) -> dict:
             "mitte_dtype": None,
             "ist_offset_reg": REG_HBDE_MITTETEMPERATUR,  # 458 = ZBP Ist-Kalibrierung
             "ist_offset_scale": 0.1,
+            "taste_sperren_reg": None,      # ZBP hat keine Tastensperre
         }
 
     # HNBE (slot 1) and NBx (slot ≥ 2) share the same formula-derived layout.
@@ -244,6 +246,7 @@ def build_room_def(slot: int, name: str) -> dict:
         "mitte_dtype": "uint16",
         "ist_offset_reg": 189 + slot,       # Ist-Kalibrierung (scale 0.1, int16)
         "ist_offset_scale": 0.1,
+        "taste_sperren_reg": 272 + slot,    # Tastensperre (holding, 0/1)
     }
 
 
@@ -292,7 +295,6 @@ T300_SENSOR_DEFINITIONS = [
 ]
 
 SWITCH_DEFINITIONS = [
-    {"register": REG_HEIZELEMENT_GLOBAL, "name": "Heizelemente Global", "uid": "heiz_global", "icon": "mdi:radiator"},
     {"register": REG_KUEHLUNG_GLOBAL, "name": "Kühlung", "uid": "kuehlung", "icon": "mdi:snowflake"},
 ]
 

@@ -393,6 +393,8 @@ class ProxonModbusHub:
             val = round(val, 2)
         elif scale == 0.1:
             val = round(val, 1)
+        elif scale == 1 and offset == 0:
+            val = int(val)
         return val
 
     async def async_update_data(self) -> dict[str, Any]:
@@ -445,6 +447,11 @@ class ProxonModbusHub:
                 regs = await self._read_reg(room["heiz_reg"], self.slave, "holding")
                 if regs is not None:
                     data[f"heiz_{room['key']}"] = bool(regs[0])
+                # Taste sperren (272+slot, nur HNBE + NBx)
+                if room.get("taste_sperren_reg") is not None:
+                    regs = await self._read_reg(room["taste_sperren_reg"], self.slave, "holding")
+                    if regs is not None:
+                        data[f"taste_sperren_{room['key']}"] = bool(regs[0])
 
             # Zugriffsmodus (für Select-Entity)
             regs = await self._read_reg(REG_ZUGRIFF, self.slave, "holding")
