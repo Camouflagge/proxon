@@ -289,7 +289,10 @@ SENSOR_DEFINITIONS = [
 ]
 
 T300_SENSOR_DEFINITIONS = [
-    {"register": REG_TEMP_T300_INPUT, "name": "T300 Wassertemperatur", "uid": "t300_temp", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "offset": -100, "icon": "mdi:water-thermometer"},
+    # min_val/max_val: Plausibilitätsgrenzen gegen RS485-Bus-Rauschen (Issue #7).
+    # Liegt ein dekodierter Wert außerhalb dieser Grenzen, wird der vorherige
+    # Cached-Wert beibehalten statt den Fehlwert zu übernehmen.
+    {"register": REG_TEMP_T300_INPUT, "name": "T300 Wassertemperatur", "uid": "t300_temp", "unit": "°C", "dc": "temperature", "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 0.1, "offset": -100, "min_val": 10.0, "max_val": 90.0, "icon": "mdi:water-thermometer"},
     {"register": REG_T300_SOLL_TEMP, "name": "T300 Soll-Temperatur", "uid": "t300_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 0.1, "offset": 0, "icon": "mdi:thermometer-water"},
     {"register": REG_T300_HEIZSTAB_SOLL, "name": "T300 Heizstab Soll", "uid": "t300_hs_soll", "unit": "°C", "dc": "temperature", "sc": None, "inp": "holding", "dt": "int16", "scale": 0.1, "offset": 0, "icon": "mdi:thermometer-alert"},
 ]

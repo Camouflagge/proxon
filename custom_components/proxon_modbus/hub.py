@@ -487,9 +487,18 @@ class ProxonModbusHub:
                 for t in T300_SENSOR_DEFINITIONS:
                     regs = await self._read_reg(t["register"], self.t300_slave, t["inp"])
                     if regs is not None:
-                        data[t["uid"]] = self._decode(
-                            regs[0], t["dt"], t["scale"], t.get("offset", 0)
-                        )
+                        val = self._decode(regs[0], t["dt"], t["scale"], t.get("offset", 0))
+                        min_val = t.get("min_val")
+                        max_val = t.get("max_val")
+                        if (min_val is not None and val < min_val) or (max_val is not None and val > max_val):
+                            _LOGGER.debug(
+                                "Proxon T300: %s außerhalb Plausibilitätsbereich (%.1f°C, raw=%d) – Vorherigen Wert beibehalten",
+                                t["uid"], val, regs[0],
+                            )
+                            if t["uid"] in self.data:
+                                data[t["uid"]] = self.data[t["uid"]]
+                        else:
+                            data[t["uid"]] = val
                 for sw in T300_SWITCH_DEFINITIONS:
                     regs = await self._read_reg(sw["register"], self.t300_slave, "holding")
                     if regs is not None:
