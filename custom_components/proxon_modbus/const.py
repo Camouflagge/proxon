@@ -250,18 +250,6 @@ def build_room_def(slot: int, name: str) -> dict:
     }
 
 
-# Mapping alte unique_id-Keys → neue slot_key() Werte.
-# Wird von __init__.py async_migrate_entry genutzt, um Entitäten aus v1.8.x
-# auf die neuen stabilen Slot-IDs zu migrieren, ohne dass der Nutzer seine
-# Automationen, Dashboards und Historien verliert.
-LEGACY_KEY_TO_SLOT_KEY = {
-    "wohnzimmer":   "zbp",    # slot 0
-    "kind_vorne":   "hnbe",   # slot 1 (Haupt NB)
-    "diele":        "nb1",    # slot 2
-    "kind_hinten":  "nb3",    # slot 4 (Register 599 → slot 4 per Formel)
-    "schlafzimmer": "nb4",    # slot 5 (Register 602 → slot 5 per Formel)
-}
-
 # ──── System-Sensoren ────
 SENSOR_DEFINITIONS = [
     {"register": REG_VENTILATOR_ZULUFT, "name": "Ventilator Zuluft", "uid": "vent_zuluft", "unit": "rpm", "dc": None, "sc": "measurement", "inp": "input", "dt": "uint16", "scale": 1, "icon": "mdi:fan"},

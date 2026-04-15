@@ -29,8 +29,10 @@ from .const import *
 
 _LOGGER = logging.getLogger(__name__)
 
-# Delay between modbus reads to avoid bus collisions (ms)
-READ_DELAY = 0.05  # 50ms between reads
+# Delay between modbus reads to avoid bus collisions (Issue #7, @Oponn4)
+READ_DELAY = 0.15  # 150ms between reads (vorher 50ms – größeres Zeitfenster reduziert Kollisionen)
+# Drain-Delay nach Connect: kurze Pause damit der TCP-Puffer ablaufen kann
+POST_CONNECT_DRAIN = 0.2  # 200ms
 # Retries for name-register reads during discovery
 DISCOVERY_RETRIES = 3
 DISCOVERY_RETRY_DELAY = 0.5  # 500ms between retries
@@ -171,6 +173,9 @@ class ProxonModbusHub:
             if not connected:
                 _LOGGER.error("Failed to connect to Proxon (%s)", self._describe())
                 return False
+            # POST_CONNECT_DRAIN: kurze Pause damit angesammelte Fremd-PDUs im
+            # TCP-Puffer ablaufen, bevor der erste Read gesendet wird (Issue #7)
+            await asyncio.sleep(POST_CONNECT_DRAIN)
             _LOGGER.info("Connected to Proxon (%s, slave %s)", self._describe(), self.slave)
             return True
         except Exception as err:
@@ -506,6 +511,17 @@ class ProxonModbusHub:
 
         except Exception as err:
             raise UpdateFailed(f"Error: {err}") from err
+        finally:
+            # Fresh-Connect: Verbindung nach jedem Zyklus schließen damit der
+            # pymodbus-Framer beim nächsten Zyklus neu initialisiert wird und
+            # keine angesammelten Fremd-PDUs vom RS485-Bus mehr enthält (Issue #7, @Oponn4).
+            # Der nächste _read_reg()-Aufruf öffnet die Verbindung automatisch neu.
+            async with self._lock:
+                if self._client:
+                    try:
+                        self._client.close()
+                    except Exception:
+                        pass
 
         self.data = data
         return data
