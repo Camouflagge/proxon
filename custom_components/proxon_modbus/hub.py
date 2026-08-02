@@ -36,6 +36,10 @@ POST_CONNECT_DRAIN = 0.2  # 200ms
 # Retries for name-register reads during discovery
 DISCOVERY_RETRIES = 3
 DISCOVERY_RETRY_DELAY = 0.5  # 500ms between retries
+# When the device is unreachable, don't hammer it with a fresh TCP connect on
+# every single register read within a cycle. After a failed connect we wait at
+# least this long before trying again (Issue: fd-reuse reconnect storm).
+RECONNECT_BACKOFF = 30.0  # seconds
 
 
 # ── Bus-Rauschen unterdrücken (Issue #4, @Oponn4) ──────────────────────
@@ -111,6 +115,9 @@ class ProxonModbusHub:
         self.scan_interval = scan_interval
         self._client = None
         self._lock = asyncio.Lock()
+        # Monotonic time before which we skip reconnect attempts (backoff after
+        # a failed connect, so a down device doesn't cause one connect per read).
+        self._reconnect_after = 0.0
         self.data: dict[str, Any] = {}
         # Room discovery state. `_discovered_rooms` is a list of
         # {"slot": int, "name": str} dicts, populated by async_discover_rooms
@@ -162,7 +169,41 @@ class ProxonModbusHub:
         # default: real Modbus-TCP (MBAP)
         return AsyncModbusTcpClient(host=self.host, port=self.port, timeout=10)
 
+    async def _async_close_client(self) -> None:
+        """Close and release the current client so its socket fd is freed.
+
+        This is the core fix for the "File descriptor N is used by transport"
+        reconnect storm: if a client (or a half-open one from a failed
+        connect) is dropped without being closed, its socket fd stays
+        registered in the event loop's selector. The next connect grabs a
+        fresh socket that the OS may assign the *same* fd number, and asyncio
+        raises RuntimeError because the selector still thinks that fd belongs
+        to the old transport. Once that happens every reconnect collides
+        forever until the integration is reloaded.
+
+        We therefore always route teardown through here: close the client,
+        drop the reference, then yield once so the transport's
+        connection_lost callback runs and the fd is actually removed from the
+        selector before any new socket is opened.
+        """
+        client = self._client
+        self._client = None
+        if client is None:
+            return
+        try:
+            client.close()
+        except Exception:  # noqa: BLE001
+            pass
+        # Let the loop process the transport teardown (fd unregister) before
+        # we allocate a new socket.
+        await asyncio.sleep(0)
+
     async def async_connect(self) -> bool:
+        # Always release any previous client first. A client left over from a
+        # failed connect or the per-cycle fresh-connect close still holds a
+        # socket fd; building a new one on top of it triggers the
+        # "File descriptor N is used by transport" collision.
+        await self._async_close_client()
         try:
             self._client = self._build_client()
             _LOGGER.info(
@@ -172,6 +213,8 @@ class ProxonModbusHub:
             connected = await self._client.connect()
             if not connected:
                 _LOGGER.error("Failed to connect to Proxon (%s)", self._describe())
+                # Clean up the half-open socket so its fd is not leaked.
+                await self._async_close_client()
                 return False
             # POST_CONNECT_DRAIN: kurze Pause damit angesammelte Fremd-PDUs im
             # TCP-Puffer ablaufen, bevor der erste Read gesendet wird (Issue #7)
@@ -180,6 +223,9 @@ class ProxonModbusHub:
             return True
         except Exception as err:
             _LOGGER.error("Error connecting to Proxon (%s): %s", self._describe(), err)
+            # Close the (possibly half-open) client so its fd is released and
+            # the next reconnect starts clean.
+            await self._async_close_client()
             return False
 
     async def async_test_connection(self) -> tuple[bool, str | None]:
@@ -218,8 +264,7 @@ class ProxonModbusHub:
                     pass
 
     async def async_close(self):
-        if self._client:
-            self._client.close()
+        await self._async_close_client()
 
     # ──────────────────────────── Room discovery ────────────────────────────
     def set_discovered_rooms(self, rooms: list[dict]) -> None:
@@ -360,15 +405,31 @@ class ProxonModbusHub:
         return result
 
     async def _ensure_connected(self):
-        """Ensure the client is connected."""
-        if not self._client or not self._client.connected:
-            await self.async_connect()
+        """Ensure the client is connected, with reconnect backoff.
+
+        When the device is down, this prevents a fresh connect attempt on
+        every register read: after a failed connect we stay quiet for
+        RECONNECT_BACKOFF seconds. Reads during that window simply find no
+        client and return None (handled by the callers), instead of piling up
+        dozens of failing connects per update cycle.
+        """
+        if self._client and self._client.connected:
+            return
+        now = self.hass.loop.time()
+        if now < self._reconnect_after:
+            return
+        ok = await self.async_connect()
+        if not ok:
+            self._reconnect_after = now + RECONNECT_BACKOFF
 
     async def _read_reg(self, address: int, slave: int, input_type: str = "input", count: int = 1) -> list[int] | None:
         """Read register(s) with delay between reads."""
         async with self._lock:
             try:
                 await self._ensure_connected()
+                if not self._client or not self._client.connected:
+                    # In reconnect backoff / device unreachable – skip quietly.
+                    return None
                 if input_type == "input":
                     r = await self._client.read_input_registers(address, count=count, device_id=slave)
                 else:
@@ -389,6 +450,12 @@ class ProxonModbusHub:
         async with self._lock:
             try:
                 await self._ensure_connected()
+                if not self._client or not self._client.connected:
+                    _LOGGER.warning(
+                        "Proxon: write reg %d skipped – no connection (%s)",
+                        address, self._describe(),
+                    )
+                    return False
                 # Handle negative values for int16
                 if value < 0:
                     value = struct.unpack("H", struct.pack("h", value))[0]
@@ -504,10 +571,21 @@ class ProxonModbusHub:
                                 data[t["uid"]] = self.data[t["uid"]]
                         else:
                             data[t["uid"]] = val
+                    elif t["uid"] in self.data:
+                        # Transient read miss – keep the last known value
+                        # instead of dropping the entity to 'unknown'. The T300
+                        # registers sit at the end of the read cycle and
+                        # occasionally fail from RS485 framer desync (Issue #7),
+                        # even though they read fine on a clean connection. The
+                        # next cycle (fresh connect) refreshes the value.
+                        data[t["uid"]] = self.data[t["uid"]]
                 for sw in T300_SWITCH_DEFINITIONS:
                     regs = await self._read_reg(sw["register"], self.t300_slave, "holding")
                     if regs is not None:
                         data[sw["uid"]] = bool(regs[0])
+                    elif sw["uid"] in self.data:
+                        # Same transient-miss handling as the T300 sensors above.
+                        data[sw["uid"]] = self.data[sw["uid"]]
 
         except Exception as err:
             raise UpdateFailed(f"Error: {err}") from err
@@ -517,11 +595,10 @@ class ProxonModbusHub:
             # keine angesammelten Fremd-PDUs vom RS485-Bus mehr enthält (Issue #7, @Oponn4).
             # Der nächste _read_reg()-Aufruf öffnet die Verbindung automatisch neu.
             async with self._lock:
-                if self._client:
-                    try:
-                        self._client.close()
-                    except Exception:
-                        pass
+                # Route through the helper so the reference is dropped and the
+                # socket fd is actually released before the next cycle opens a
+                # new connection (prevents the fd-reuse collision storm).
+                await self._async_close_client()
 
         self.data = data
         return data
